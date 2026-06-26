@@ -126,12 +126,84 @@ export function ProgressFeed({
   onClose,
 }: ProgressFeedProps) {
   const [minimized, setMinimized] = useState(false)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const dragOffsetRef = useRef({ x: 0, y: 0 })
+
+  const clampPosition = (x: number, y: number) => {
+    const panel = panelRef.current
+    const panelWidth = panel?.offsetWidth ?? 384
+    const panelHeight = panel?.offsetHeight ?? 360
+    const maxX = Math.max(16, window.innerWidth - panelWidth - 16)
+    const maxY = Math.max(16, window.innerHeight - panelHeight - 16)
+
+    return {
+      x: Math.min(Math.max(16, x), maxX),
+      y: Math.min(Math.max(16, y), maxY),
+    }
+  }
 
   // Auto-expand when streaming starts
   useEffect(() => {
     if (isStreaming) setMinimized(false)
   }, [isStreaming])
+
+  // Initialize the panel position once we can measure the viewport and panel.
+  useEffect(() => {
+    if (!isOpen) return
+
+    const updateInitialPosition = () => {
+      const panel = panelRef.current
+      const panelWidth = panel?.offsetWidth ?? 384
+      const panelHeight = panel?.offsetHeight ?? 360
+      setPosition({
+        x: Math.max(16, window.innerWidth - panelWidth - 16),
+        y: Math.max(16, window.innerHeight - panelHeight - 16),
+      })
+    }
+
+    updateInitialPosition()
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleResize = () => {
+      setPosition((current) => clampPosition(current.x, current.y))
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleMove = (event: PointerEvent) => {
+      setPosition(
+        clampPosition(
+          event.clientX - dragOffsetRef.current.x,
+          event.clientY - dragOffsetRef.current.y,
+        ),
+      )
+    }
+
+    const handleUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener("pointermove", handleMove)
+    window.addEventListener("pointerup", handleUp)
+    window.addEventListener("pointercancel", handleUp)
+
+    return () => {
+      window.removeEventListener("pointermove", handleMove)
+      window.removeEventListener("pointerup", handleUp)
+      window.removeEventListener("pointercancel", handleUp)
+    }
+  }, [isDragging])
 
   useEffect(() => {
     if (!minimized) {
@@ -142,10 +214,34 @@ export function ProgressFeed({
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-4 right-4 w-96 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700">
+    <div
+      ref={panelRef}
+      className="fixed w-96 z-50 shadow-2xl rounded-xl overflow-hidden border border-gray-700 select-none"
+      style={{ left: position.x, top: position.y }}
+    >
       {/* Title bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-200">
+      <div
+        className={`flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700 ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return
+          const target = event.target as HTMLElement
+          if (target.closest("button")) return
+
+          const panel = panelRef.current
+          if (!panel) return
+
+          const rect = panel.getBoundingClientRect()
+          dragOffsetRef.current = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+          }
+          setIsDragging(true)
+          event.currentTarget.setPointerCapture(event.pointerId)
+        }}
+      >
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-200 pointer-events-none">
           {isStreaming && (
             <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse inline-block" />
           )}
@@ -178,7 +274,7 @@ export function ProgressFeed({
 
       {/* Content */}
       {!minimized && (
-        <div className="font-mono text-xs overflow-y-auto max-h-80 p-3 space-y-1 bg-gray-950">
+        <div className="font-mono text-xs overflow-y-auto max-h-80 p-3 space-y-1 bg-gray-950 cursor-auto">
           {lines.length === 0 && <div className="text-gray-500">Waiting…</div>}
           {lines.map((line, i) => {
             switch (line.kind) {
