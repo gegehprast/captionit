@@ -31,7 +31,11 @@ export function DirectoryBrowser({
         setBrowse(result)
         onChange(result.path)
         setInputValue(result.path)
-        if (navigate) onNavigate?.(result.path)
+        if (navigate) {
+          onNavigate?.(result.path)
+          // Close dropdown if no subdirs remain and there are images here
+          if (result.dirs.length === 0 && result.imageCount > 0) setOpen(false)
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
@@ -80,14 +84,11 @@ export function DirectoryBrowser({
         />
         <button
           type="button"
-          onClick={() => {
-            setOpen(true)
-            load(inputValue, true)
-          }}
+          onClick={() => load(inputValue, true)}
           disabled={disabled || loading}
           className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "…" : "Go"}
+          {loading ? "…" : "Go / Reload"}
         </button>
       </div>
 

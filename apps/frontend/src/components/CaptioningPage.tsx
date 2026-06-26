@@ -185,6 +185,7 @@ export function CaptioningPage() {
           onScan={handleScan}
           onStart={handleStart}
           onStop={handleStop}
+          onClearSelection={() => setCheckedFiles(new Set())}
           isScanning={isScanning}
           isStreaming={isStreaming}
           selectedFiles={checkedFiles.size > 0 ? [...checkedFiles] : undefined}

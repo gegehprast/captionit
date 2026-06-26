@@ -6,11 +6,11 @@ interface CaptioningFormProps {
   onScan: (dirPath: string) => void
   onStart: (dirPath: string, mode: CaptionMode, filesFilter?: string[]) => void
   onStop: () => void
+  onClearSelection: () => void
   isScanning: boolean
   isStreaming: boolean
   dirPath: string
   onDirPathChange: (v: string) => void
-  /** Files to caption (from selection in the image list). Undefined = all. */
   selectedFiles?: string[]
 }
 
@@ -18,6 +18,7 @@ export function CaptioningForm({
   onScan,
   onStart,
   onStop,
+  onClearSelection,
   isScanning,
   isStreaming,
   dirPath,
@@ -39,17 +40,14 @@ export function CaptioningForm({
         disabled={busy}
       />
 
-      <div className="flex items-end gap-4">
-        <div className="w-56">
-          <label className="block text-sm text-gray-400 mb-1" htmlFor="mode">
-            Mode
-          </label>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="w-52">
           <select
             id="mode"
             value={mode}
             onChange={(e) => setMode(e.target.value as CaptionMode)}
             disabled={busy}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-violet-500 disabled:opacity-50 text-sm"
           >
             <option value="store">Store (skip existing)</option>
             <option value="replace">Replace (overwrite all)</option>
@@ -57,47 +55,46 @@ export function CaptioningForm({
           </select>
         </div>
 
-        <div className="flex gap-3">
+        {isStreaming ? (
           <button
             type="button"
-            onClick={() => onScan(dirPath)}
-            disabled={!dirPath || busy}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={onStop}
+            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            {isScanning ? "Reloading…" : "Reload"}
+            Stop
           </button>
-
-          {isStreaming ? (
+        ) : (
+          <>
             <button
               type="button"
-              onClick={onStop}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors"
+              onClick={() => onStart(dirPath, mode, undefined)}
+              disabled={!dirPath || busy}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Stop
+              Caption All
             </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => onStart(dirPath, mode, undefined)}
-                disabled={!dirPath || busy}
-                className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Caption All
-              </button>
-              {selectedFiles && selectedFiles.length > 0 && (
+            {selectedFiles && selectedFiles.length > 0 && (
+              <>
                 <button
                   type="button"
                   onClick={() => onStart(dirPath, mode, selectedFiles)}
                   disabled={!dirPath || busy}
-                  className="px-4 py-2 bg-violet-800 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-violet-800 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Caption Selected ({selectedFiles.length})
                 </button>
-              )}
-            </>
-          )}
-        </div>
+                <button
+                  type="button"
+                  onClick={onClearSelection}
+                  disabled={busy}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear Selection
+                </button>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

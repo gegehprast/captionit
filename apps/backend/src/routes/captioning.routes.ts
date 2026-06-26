@@ -102,6 +102,7 @@ createRoute("GET", "/api/captioning/browse")
     }
 
     const dirs: string[] = []
+    let imageCount = 0
     for (const entry of entries.sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" }),
     )) {
@@ -110,6 +111,11 @@ createRoute("GET", "/api/captioning/browse")
         const s = await stat(entryPath)
         if (s.isDirectory() && !entry.startsWith(".")) {
           dirs.push(entry)
+        } else if (s.isFile()) {
+          const ext = entry.slice(entry.lastIndexOf(".")).toLowerCase()
+          if ([".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext)) {
+            imageCount++
+          }
         }
       } catch {
         // skip inaccessible entries
@@ -124,7 +130,7 @@ createRoute("GET", "/api/captioning/browse")
     }))
 
     return new Response(
-      JSON.stringify({ path: resolvedPath, breadcrumbs, dirs }),
+      JSON.stringify({ path: resolvedPath, breadcrumbs, dirs, imageCount }),
       { headers: { "Content-Type": "application/json" } },
     )
   })

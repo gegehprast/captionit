@@ -41,6 +41,7 @@ export interface BrowseResult {
   path: string
   breadcrumbs: { name: string; path: string }[]
   dirs: string[]
+  imageCount: number
 }
 
 export async function browseDirectory(path: string): Promise<BrowseResult> {
