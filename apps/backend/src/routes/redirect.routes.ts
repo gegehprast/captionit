@@ -15,22 +15,17 @@ createRoute("GET", "/api/redirect-internal")
     return res.redirectTo("/")
   })
 
-// Internal redirect with params - redirects to a specific todo
-createRoute("GET", "/api/redirect-to-todo")
+// Internal redirect with params - redirects to a specific image
+createRoute("GET", "/api/redirect-to-health")
   .openapi({
-    operationId: "redirectToTodo",
-    summary: "Internal Redirect with Params",
+    operationId: "redirectToHealth",
+    summary: "Internal Redirect to Health",
     description:
-      "Demonstrates type-safe internal redirect to a route with path parameters",
+      "Demonstrates type-safe internal redirect to another route in the application",
     tags: ["System"],
   })
   .handler(({ res }) => {
-    // Type-safe redirect with parameters
-    // TypeScript will enforce the params object to match the route definition
-    return res.redirectTo({
-      path: "/api/todos/:id",
-      params: { id: "1" },
-    })
+    return res.redirectTo("/api/health")
   })
 
 // External redirect example - redirects to external URL

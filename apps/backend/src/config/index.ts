@@ -1,15 +1,10 @@
 import { z } from "zod"
 import packageJson from "../../package.json"
 
-const DEFAULT_JWT_SECRET =
-  "your-super-secret-jwt-key-min-32-chars-please-change-this-in-production"
-const DEFAULT_JWT_REFRESH_SECRET =
-  "your-super-secret-refresh-key-min-32-chars-please-change-this-in-production"
-
 const configSchema = z.object({
   // Application
-  APP_NAME: z.string().default("Bunkit"),
-  APP_URL: z.string().default("https://bunkit.dev"),
+  APP_NAME: z.string().default("CaptionIt"),
+  APP_URL: z.string().default("http://localhost:3001"),
   VERSION: z.string(),
 
   // Server
@@ -28,15 +23,6 @@ const configSchema = z.object({
     .default(
       "http://localhost:3000,http://localhost:5173,http://localhost:4173,http://localhost:8080",
     ),
-
-  // Database
-  DATABASE_URL: z.string().default("postgresql://localhost:5432/bunkit_test"),
-
-  // JWT
-  JWT_SECRET: z.string().min(32).default(DEFAULT_JWT_SECRET),
-  JWT_EXPIRES_IN: z.string().default("7d"),
-  JWT_REFRESH_SECRET: z.string().min(32).default(DEFAULT_JWT_REFRESH_SECRET),
-  JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000), // 1 minute
@@ -59,24 +45,10 @@ export type Config = z.infer<typeof configSchema>
  */
 function parseConfig(): Config {
   try {
-    const parsed = configSchema.parse({
+    return configSchema.parse({
       ...process.env,
       VERSION: packageJson.version,
     })
-
-    // On production, ensure JWT secrets are not default values
-    if (parsed.NODE_ENV === "production") {
-      if (
-        parsed.JWT_SECRET === DEFAULT_JWT_SECRET ||
-        parsed.JWT_REFRESH_SECRET === DEFAULT_JWT_REFRESH_SECRET
-      ) {
-        console.error(
-          "❌ In production, JWT_SECRET and JWT_REFRESH_SECRET must be set to secure values.",
-        )
-        process.exit(1)
-      }
-    }
-    return parsed
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("❌ Invalid environment configuration:")

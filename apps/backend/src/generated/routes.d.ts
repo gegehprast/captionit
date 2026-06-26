@@ -7,15 +7,15 @@ declare module "@bunkit/server" {
   interface RegisteredRoutes {
     "/": Record<string, never>
     "/:path*": { path: string }
+    "/api/captioning/browse": Record<string, never>
+    "/api/captioning/config": Record<string, never>
+    "/api/captioning/image": Record<string, never>
+    "/api/captioning/scan": Record<string, never>
+    "/api/captioning/stream": Record<string, never>
     "/api/health": Record<string, never>
     "/api/redirect-external": Record<string, never>
     "/api/redirect-internal": Record<string, never>
-    "/api/redirect-to-todo": Record<string, never>
-    "/api/todos": Record<string, never>
-    "/api/todos/:id": { id: string }
-    "/auth/login": Record<string, never>
-    "/auth/me": Record<string, never>
-    "/auth/register": Record<string, never>
+    "/api/redirect-to-health": Record<string, never>
     "/docs": Record<string, never>
     "/openapi.json": Record<string, never>
     "/openapi/refresh": Record<string, never>

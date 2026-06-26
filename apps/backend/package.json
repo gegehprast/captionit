@@ -22,9 +22,10 @@
         "@bunkit/result": "workspace:*",
         "@bunkit/server": "workspace:*",
         "drizzle-orm": "catalog:",
+        "jose": "catalog:",
+        "openai": "^6.45.0",
         "zod": "catalog:",
-        "zod-openapi": "catalog:",
-        "jose": "catalog:"
+        "zod-openapi": "catalog:"
     },
     "devDependencies": {
         "@types/bun": "catalog:",
