@@ -49,23 +49,23 @@ export function CaptionDetail({
   }
 
   return (
-    <div className="w-80 shrink-0 sticky top-4 self-start">
+    <div className="w-96 shrink-0 sticky top-4 self-start">
       <div className="border border-gray-800 bg-gray-900 overflow-hidden max-h-[calc(100vh-2rem)] flex flex-col">
         {/* Full-size image */}
-        <div className="bg-gray-950 border-b border-gray-800 flex items-center justify-center shrink-0 h-full overflow-hidden">
+        <div className="bg-gray-950 border-b border-gray-800 flex items-center justify-center shrink-0 overflow-hidden">
           <img
             src={getImageUrl(dirPath, image.file)}
             alt={image.file}
-            className="max-w-full max-h-full object-contain"
+            className="w-auto h-auto max-h-105 max-w-full object-contain"
           />
         </div>
 
         {/* Info + caption */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           <p className="text-xs font-mono text-gray-300 break-all">
-            {image.file}
+            {image.file}{" "}
+            <span className="text-[11px] text-gray-500">{image.sizeMB} MB</span>
           </p>
-          <p className="text-xs text-gray-500">{image.sizeMB} MB</p>
 
           <div className="pt-1 space-y-1">
             <div className="flex items-center justify-between">
@@ -91,7 +91,7 @@ export function CaptionDetail({
                 value={editCaption}
                 onChange={(e) => handleChange(e.target.value)}
                 rows={12}
-                className="w-full min-h-40 h-[42vh] max-h-[58vh] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 leading-relaxed focus:outline-none focus:border-pink-500 resize-y font-sans"
+                className="w-full min-h-40 h-[42vh] max-h-[58vh] bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-gray-200 leading-relaxed focus:outline-none focus:border-pink-500 resize-y font-sans"
                 placeholder="No caption yet — type to add one"
               />
             )}

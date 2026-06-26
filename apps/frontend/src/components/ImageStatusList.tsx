@@ -105,7 +105,7 @@ export function ImageStatusList({
       <div className="flex items-start">
         {/* Grid */}
         <div className="flex-1 p-4 h-[calc(100vh-14rem)] overflow-y-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3">
             {images.map((image) => (
               <ImageThumbnail
                 key={image.file}

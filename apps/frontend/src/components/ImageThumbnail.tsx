@@ -18,30 +18,28 @@ export function ImageThumbnail({
   onClick,
 }: ImageThumbnailProps) {
   return (
-    <div className="relative group flex flex-col">
+    <div
+      className={`relative group flex flex-col rounded-lg overflow-hidden border-2 transition-all ${
+        isDetail || isActive || isSelected
+          ? "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)]"
+          : "border-gray-700 hover:border-gray-500"
+      }`}
+    >
+      {isActive && (
+        <span className="absolute inset-0 z-20 rounded-lg border-4 border-pink-300/90 animate-pulse pointer-events-none" />
+      )}
+
       <button
         type="button"
         onClick={onClick}
-        className={`w-full relative rounded-t-lg overflow-hidden border-2 border-b-0 transition-all focus:outline-none select-none ${
-          isDetail || isActive || isSelected
-            ? "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)]"
-            : "border-gray-700 hover:border-gray-500"
-        }`}
+        className="w-full relative transition-all focus:outline-none select-none"
       >
-        {/* Active pulse ring */}
-        {isActive && (
-          <>
-            <span className="absolute inset-0 z-10 rounded-t-lg ring-4 ring-pink-400/70 animate-pulse pointer-events-none" />
-            <span className="absolute inset-0 z-10 rounded-t-lg bg-pink-500/10 pointer-events-none" />
-          </>
-        )}
-
         {/* Thumbnail */}
         <div className="aspect-square bg-gray-800">
           <img
             src={src}
             alt={image.file}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-[30%_30%] group-hover:object-[20%_20%] transition-all"
             loading="lazy"
           />
         </div>
@@ -61,31 +59,23 @@ export function ImageThumbnail({
               </span>
               processing
             </span>
-          ) : image.hasCaption ? (
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-500/90 text-white text-[9px] font-bold">
-              ✓
-            </span>
           ) : null}
         </div>
       </button>
 
       {/* Filename + caption preview below thumbnail */}
-      <div
-        className={`rounded-b-lg border-2 border-t-0 px-1.5 py-1 bg-gray-800 min-h-10 ${
-          isDetail || isActive || isSelected
-            ? "border-pink-500"
-            : "border-gray-700 group-hover:border-gray-500"
-        }`}
-      >
+      <div className="px-1.5 py-1 bg-gray-800 min-h-10 border-t border-gray-700">
         <p className="text-[10px] text-gray-400 truncate font-mono leading-tight">
           {image.file} ({image.sizeMB} MB)
         </p>
         {image.caption ? (
-          <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-            {image.caption}
-          </p>
+          <div className="h-24 overflow-y-auto">
+            <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
+              {image.caption}
+            </p>
+          </div>
         ) : (
-          <p className="text-[10px] text-gray-700 mt-0.5 italic leading-tight">
+          <p className="text-[11px] text-gray-700 mt-0.5 italic leading-tight">
             no caption
           </p>
         )}
