@@ -6,7 +6,7 @@ export default function App() {
     <>
       <CaptioningPage />
       <Toaster
-        position="bottom-left"
+        position="top-right"
         toastOptions={{
           style: {
             background: "#1f2937",

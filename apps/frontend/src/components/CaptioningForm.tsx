@@ -6,6 +6,7 @@ interface CaptioningFormProps {
   onScan: (dirPath: string) => void
   onStart: (dirPath: string, mode: CaptionMode, filesFilter?: string[]) => void
   onStop: () => void
+  isStopPending: boolean
   onClearSelection: () => void
   isScanning: boolean
   isStreaming: boolean
@@ -18,6 +19,7 @@ export function CaptioningForm({
   onScan,
   onStart,
   onStop,
+  isStopPending,
   onClearSelection,
   isScanning,
   isStreaming,
@@ -59,9 +61,10 @@ export function CaptioningForm({
           <button
             type="button"
             onClick={onStop}
+            disabled={isStopPending}
             className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            Stop
+            {isStopPending ? "Stopping..." : "Stop"}
           </button>
         ) : (
           <>

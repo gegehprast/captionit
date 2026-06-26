@@ -19,6 +19,7 @@ export type FeedLine =
 interface ProgressFeedProps {
   lines: FeedLine[]
   isStreaming: boolean
+  isStopPending: boolean
   isOpen: boolean
   onClose: () => void
 }
@@ -120,6 +121,7 @@ export function buildFeedLines(events: CaptioningEvent[]): FeedLine[] {
 export function ProgressFeed({
   lines,
   isStreaming,
+  isStopPending,
   isOpen,
   onClose,
 }: ProgressFeedProps) {
@@ -148,6 +150,11 @@ export function ProgressFeed({
             <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse inline-block" />
           )}
           <span>Progress</span>
+          {isStopPending && (
+            <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 border border-amber-500/30">
+              stopping...
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button

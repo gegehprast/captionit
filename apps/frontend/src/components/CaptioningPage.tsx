@@ -36,9 +36,11 @@ export function CaptioningPage() {
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set())
   const [feedLines, setFeedLines] = useState<FeedLine[]>([])
   const [feedOpen, setFeedOpen] = useState(false)
+  const [isStopPending, setIsStopPending] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
   const eventsRef = useRef<CaptioningEvent[]>([])
+  const stopPendingRef = useRef(false)
 
   useEffect(() => {
     getCaptioningConfig()
@@ -77,6 +79,8 @@ export function CaptioningPage() {
       setError(null)
       setActiveFile(undefined)
       setLiveCaption(undefined)
+      setIsStopPending(false)
+      stopPendingRef.current = false
       setIsStreaming(true)
       setFeedLines([])
       setFeedOpen(true)
@@ -125,11 +129,20 @@ export function CaptioningPage() {
             // Accumulate for feed
             eventsRef.current = [...eventsRef.current, event]
             setFeedLines(buildFeedLines(eventsRef.current))
+
+            if (
+              stopPendingRef.current &&
+              (event.type === "done" ||
+                event.type === "error" ||
+                event.type === "skip")
+            ) {
+              abortRef.current?.abort()
+            }
           },
         })
       } catch (e) {
         if ((e as { name?: string }).name === "AbortError") {
-          toast("Captioning stopped", { icon: "⏹" })
+          toast("Stopped after the current image finished", { icon: "⏹" })
         } else {
           setError(e instanceof Error ? e.message : String(e))
         }
@@ -149,6 +162,8 @@ export function CaptioningPage() {
           }
         }
         setIsStreaming(false)
+        setIsStopPending(false)
+        stopPendingRef.current = false
         setActiveFile(undefined)
         setLiveCaption(undefined)
       }
@@ -157,8 +172,13 @@ export function CaptioningPage() {
   )
 
   const handleStop = useCallback(() => {
-    abortRef.current?.abort()
-  }, [])
+    if (isStopPending) return
+    setIsStopPending(true)
+    stopPendingRef.current = true
+    toast("Stopping... will stop after the current image finishes", {
+      icon: "⏳",
+    })
+  }, [isStopPending])
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -201,6 +221,7 @@ export function CaptioningPage() {
           onScan={handleScan}
           onStart={handleStart}
           onStop={handleStop}
+          isStopPending={isStopPending}
           onClearSelection={() => setCheckedFiles(new Set())}
           isScanning={isScanning}
           isStreaming={isStreaming}
@@ -237,6 +258,7 @@ export function CaptioningPage() {
       <ProgressFeed
         lines={feedLines}
         isStreaming={isStreaming}
+        isStopPending={isStopPending}
         isOpen={feedOpen}
         onClose={() => setFeedOpen(false)}
       />

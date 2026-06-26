@@ -24,13 +24,16 @@ export function ImageThumbnail({
         onClick={onClick}
         className={`w-full relative rounded-t-lg overflow-hidden border-2 border-b-0 transition-all focus:outline-none select-none ${
           isDetail || isActive || isSelected
-            ? "border-violet-500"
+            ? "border-violet-400 shadow-[0_0_0_1px_rgba(167,139,250,0.55),0_0_24px_rgba(167,139,250,0.22)]"
             : "border-gray-700 hover:border-gray-500"
         }`}
       >
         {/* Active pulse ring */}
         {isActive && (
-          <span className="absolute inset-0 z-10 rounded-t-lg ring-2 ring-violet-500 animate-pulse pointer-events-none" />
+          <>
+            <span className="absolute inset-0 z-10 rounded-t-lg ring-4 ring-violet-400/70 animate-pulse pointer-events-none" />
+            <span className="absolute inset-0 z-10 rounded-t-lg bg-violet-500/10 pointer-events-none" />
+          </>
         )}
 
         {/* Thumbnail */}
@@ -51,9 +54,12 @@ export function ImageThumbnail({
         {/* Caption status badge */}
         <div className="absolute top-1.5 right-1.5 z-10">
           {isActive ? (
-            <span className="flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-400" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-500 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white shadow-lg shadow-violet-950/40">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+              </span>
+              processing
             </span>
           ) : image.hasCaption ? (
             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-500/90 text-white text-[9px] font-bold">
