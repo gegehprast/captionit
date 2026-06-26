@@ -80,7 +80,7 @@ export function DirectoryBrowser({
           onFocus={() => setOpen(true)}
           placeholder="/home/user/dataset"
           disabled={disabled}
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
         />
         <button
           type="button"
@@ -112,7 +112,7 @@ export function DirectoryBrowser({
                   type="button"
                   onClick={() => load(crumb.path, true)}
                   disabled={disabled}
-                  className="text-xs text-violet-400 hover:text-violet-300 transition-colors disabled:opacity-50 font-mono"
+                  className="text-xs text-pink-400 hover:text-pink-300 transition-colors disabled:opacity-50 font-mono"
                 >
                   {crumb.name}
                 </button>

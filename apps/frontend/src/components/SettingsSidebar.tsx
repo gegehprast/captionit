@@ -105,7 +105,7 @@ export function SettingsSidebar({
               onChange={(e) => set("serviceHost", e.target.value)}
               disabled={disabled}
               placeholder="https://api.venice.ai/api/v1"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
             />
             <p className="text-xs text-gray-600">
               Base URL of any OpenAI-compatible API
@@ -126,7 +126,7 @@ export function SettingsSidebar({
               onChange={(e) => set("apiKey", e.target.value)}
               disabled={disabled}
               placeholder="Leave blank to use server default"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
             />
             <p className="text-xs text-gray-600">
               Overrides the server-side{" "}
@@ -148,7 +148,7 @@ export function SettingsSidebar({
               onChange={(e) => set("modelName", e.target.value)}
               disabled={disabled}
               placeholder="gemma-4-uncensored"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
             />
           </div>
 
@@ -166,7 +166,7 @@ export function SettingsSidebar({
               onChange={(e) => set("instruction", e.target.value)}
               disabled={disabled}
               rows={10}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 text-sm resize-y font-mono"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 text-sm resize-y font-mono"
             />
             <p className="text-xs text-gray-600">
               System prompt sent to the model for each image
@@ -197,7 +197,7 @@ export function SettingsSidebar({
               }
               disabled={disabled}
               placeholder="1024"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
             />
             <p className="text-xs text-gray-600">
               Images are resized to this max dimension before sending (px).
@@ -213,7 +213,7 @@ export function SettingsSidebar({
             type="button"
             onClick={loadDefaults}
             disabled={disabled || loadingDefaults}
-            className="w-full px-4 py-2 bg-violet-800 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 bg-pink-800 hover:bg-pink-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingDefaults ? "Loading…" : "Load server defaults"}
           </button>

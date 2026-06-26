@@ -42,14 +42,14 @@ export function CaptioningForm({
         disabled={busy}
       />
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex gap-3 flex-wrap">
         <div className="w-52">
           <select
             id="mode"
             value={mode}
             onChange={(e) => setMode(e.target.value as CaptionMode)}
             disabled={busy}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-violet-500 disabled:opacity-50 text-sm"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500 disabled:opacity-50 text-sm"
           >
             <option value="store">Store (skip existing)</option>
             <option value="replace">Replace (overwrite all)</option>
@@ -72,7 +72,7 @@ export function CaptioningForm({
               type="button"
               onClick={() => onStart(dirPath, mode, undefined)}
               disabled={!dirPath || busy}
-              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Caption All
             </button>
@@ -82,7 +82,7 @@ export function CaptioningForm({
                   type="button"
                   onClick={() => onStart(dirPath, mode, selectedFiles)}
                   disabled={!dirPath || busy}
-                  className="px-4 py-2 bg-violet-800 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Caption Selected ({selectedFiles.length})
                 </button>

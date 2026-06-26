@@ -71,7 +71,7 @@ export function CaptionDetail({
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">Caption</span>
               {isStreaming ? (
-                <span className="text-xs text-violet-400">streaming…</span>
+                <span className="text-xs text-pink-400">streaming…</span>
               ) : saveStatus === "saving" ? (
                 <span className="text-xs text-gray-500">saving…</span>
               ) : saveStatus === "saved" ? (
@@ -91,7 +91,7 @@ export function CaptionDetail({
                 value={editCaption}
                 onChange={(e) => handleChange(e.target.value)}
                 rows={12}
-                className="w-full min-h-40 h-[42vh] max-h-[58vh] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 leading-relaxed focus:outline-none focus:border-violet-500 resize-y font-sans"
+                className="w-full min-h-40 h-[42vh] max-h-[58vh] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 leading-relaxed focus:outline-none focus:border-pink-500 resize-y font-sans"
                 placeholder="No caption yet — type to add one"
               />
             )}

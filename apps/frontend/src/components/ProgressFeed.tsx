@@ -243,7 +243,7 @@ export function ProgressFeed({
       >
         <div className="flex items-center gap-2 text-sm font-medium text-gray-200 pointer-events-none">
           {isStreaming && (
-            <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse inline-block" />
+            <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse inline-block" />
           )}
           <span>Progress</span>
           {isStopPending && (
@@ -286,7 +286,7 @@ export function ProgressFeed({
                 )
               case "image":
                 return (
-                  <div key={i} className="text-violet-400 mt-2">
+                  <div key={i} className="text-pink-400 mt-2">
                     [{line.index}/{line.total}] {line.file}{" "}
                     <span className="text-gray-500">({line.sizeMB} MB)</span>
                   </div>

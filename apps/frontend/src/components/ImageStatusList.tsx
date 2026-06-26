@@ -81,7 +81,7 @@ export function ImageStatusList({
             {images.length} image(s)
           </span>
           {checkedFiles.size > 0 && (
-            <span className="text-xs text-violet-400">
+            <span className="text-xs text-pink-400">
               {checkedFiles.size} selected
             </span>
           )}
