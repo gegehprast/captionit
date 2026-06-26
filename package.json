@@ -1,6 +1,6 @@
 {
-    "name": "bunkit",
-    "version": "0.1.0",
+    "name": "captionit",
+    "version": "0.0.1",
     "type": "module",
     "private": true,
     "scripts": {
@@ -55,19 +55,19 @@
         "@types/node": "^24.10.9",
         "typescript": "^5.9.3"
     },
-    "description": "BunKit - A production-ready fullstack monorepo starter kit for building modern web applications with Bun, featuring type-safe HTTP APIs, real-time WebSocket support, and automatic OpenAPI documentation generation.",
+    "description": "CaptionIt - Local-first image captioning app using OpenAI-compatible model backends.",
     "keywords": [
         "bun",
-        "monorepo",
-        "fullstack",
-        "starter",
-        "kit",
+        "captioning",
+        "image-captioning",
+        "local-first",
+        "openai-compatible",
+        "ollama",
         "typescript",
         "react",
         "tailwindcss",
-        "drizzle-orm",
-        "openapi",
-        "websockets"
+        "sse",
+        "streaming"
     ],
     "engines": {
         "bun": ">=1.3.3"
