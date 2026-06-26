@@ -19,6 +19,7 @@ export interface CaptioningConfig {
   serviceHost: string
   modelName: string
   instruction: string
+  maxResolution: number
 }
 
 export interface CaptioningSettings {
@@ -26,6 +27,7 @@ export interface CaptioningSettings {
   apiKey: string
   modelName: string
   instruction: string
+  maxResolution: number
 }
 
 export type CaptioningEvent =
@@ -127,6 +129,9 @@ export async function streamCaptioning({
       ...(settings?.apiKey ? { apiKey: settings.apiKey } : {}),
       ...(settings?.modelName ? { modelName: settings.modelName } : {}),
       ...(settings?.instruction ? { instruction: settings.instruction } : {}),
+      ...(settings?.maxResolution
+        ? { maxResolution: settings.maxResolution }
+        : {}),
     }),
     signal,
   })

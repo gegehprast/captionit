@@ -32,6 +32,7 @@ export function SettingsSidebar({
         apiKey: settings.apiKey,
         modelName: cfg.modelName,
         instruction: cfg.instruction,
+        maxResolution: cfg.maxResolution,
       })
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Failed to load defaults")
@@ -46,7 +47,8 @@ export function SettingsSidebar({
       open &&
       !settings.serviceHost &&
       !settings.modelName &&
-      !settings.instruction
+      !settings.instruction &&
+      !settings.maxResolution
     ) {
       loadDefaults()
     }
@@ -168,6 +170,38 @@ export function SettingsSidebar({
             />
             <p className="text-xs text-gray-600">
               System prompt sent to the model for each image
+            </p>
+          </div>
+
+          {/* Max Resolution */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="setting-maxResolution"
+              className="block text-xs font-medium text-gray-400 uppercase tracking-wide"
+            >
+              Max Resolution
+            </label>
+            <input
+              id="setting-maxResolution"
+              type="number"
+              min={256}
+              step={128}
+              value={settings.maxResolution || ""}
+              onChange={(e) =>
+                set(
+                  "maxResolution",
+                  e.target.value === ""
+                    ? 0
+                    : Number.parseInt(e.target.value, 10),
+                )
+              }
+              disabled={disabled}
+              placeholder="1024"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 disabled:opacity-50 font-mono text-sm"
+            />
+            <p className="text-xs text-gray-600">
+              Images are resized to this max dimension before sending (px).
+              Lower = faster.
             </p>
           </div>
         </div>

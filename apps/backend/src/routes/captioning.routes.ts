@@ -47,6 +47,7 @@ const ConfigResponseSchema = z
     serviceHost: z.string(),
     modelName: z.string(),
     instruction: z.string(),
+    maxResolution: z.number(),
   })
   .meta({ id: "ConfigResponse", title: "Captioning Config" })
 
@@ -186,6 +187,7 @@ createRoute("GET", "/api/captioning/config")
       serviceHost: captioningConfig.DEFAULT_SERVICE_HOST,
       modelName: captioningConfig.DEFAULT_MODEL_NAME,
       instruction: captioningConfig.DEFAULT_INSTRUCTION,
+      maxResolution: captioningConfig.DEFAULT_MAX_RESOLUTION,
     })
   })
 
@@ -331,6 +333,7 @@ createRoute("POST", "/api/captioning/stream")
         apiKey: z.string().optional(),
         modelName: z.string().optional(),
         instruction: z.string().optional(),
+        maxResolution: z.number().int().positive().optional(),
       })
       .meta({ id: "StreamBody", title: "Stream Request Body" }),
   )
@@ -343,6 +346,7 @@ createRoute("POST", "/api/captioning/stream")
       apiKey,
       modelName,
       instruction,
+      maxResolution,
     } = body as {
       dirPath: string
       mode: CaptionMode
@@ -351,6 +355,7 @@ createRoute("POST", "/api/captioning/stream")
       apiKey?: string
       modelName?: string
       instruction?: string
+      maxResolution?: number
     }
 
     // Validate path upfront
@@ -398,6 +403,15 @@ createRoute("POST", "/api/captioning/stream")
 
         enqueue({ type: "start", total: images.length })
 
+        logger.info("Captioning session started", {
+          total: images.length,
+          mode,
+          model: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
+          baseURL: resolvedBaseURL,
+          maxResolution:
+            maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
+        })
+
         let captioned = 0
         let skipped = 0
         let failed = 0
@@ -415,6 +429,9 @@ createRoute("POST", "/api/captioning/stream")
 
           // In "store" mode, skip already-captioned images
           if (mode === "store" && image.hasCaption) {
+            logger.debug("Skipping already-captioned image", {
+              file: image.file,
+            })
             enqueue({ type: "skip", file: image.file })
             skipped++
             continue
@@ -427,6 +444,13 @@ createRoute("POST", "/api/captioning/stream")
             sizeMB: image.sizeMB,
           })
 
+          logger.info("Captioning image", {
+            file: image.file,
+            index: images.indexOf(image) + 1,
+            total: images.length,
+            sizeMB: image.sizeMB,
+          })
+
           try {
             let caption = ""
             for await (const token of streamCaption(
@@ -435,6 +459,7 @@ createRoute("POST", "/api/captioning/stream")
               resolvedApiKey,
               modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
               instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
+              maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
             )) {
               if (req.signal.aborted) break
               caption += token
@@ -464,6 +489,10 @@ createRoute("POST", "/api/captioning/stream")
             }
 
             enqueue({ type: "done", file: image.file, caption })
+            logger.info("Caption saved", {
+              file: image.file,
+              captionLength: caption.length,
+            })
             captioned++
           } catch (e) {
             const message = e instanceof Error ? e.message : String(e)
@@ -474,6 +503,11 @@ createRoute("POST", "/api/captioning/stream")
         }
 
         enqueue({ type: "summary", captioned, skipped, failed })
+        logger.info("Captioning session complete", {
+          captioned,
+          skipped,
+          failed,
+        })
         controller.close()
       },
     })

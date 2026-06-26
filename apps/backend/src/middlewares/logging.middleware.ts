@@ -47,7 +47,7 @@ export function loggingMiddleware(): MiddlewareFn {
           durationMs: duration,
         })
       } else {
-        logger.info("HTTP Request", {
+        logger.debug("HTTP Request", {
           requestId,
           method,
           path,

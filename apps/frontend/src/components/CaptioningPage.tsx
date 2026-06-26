@@ -28,6 +28,7 @@ export function CaptioningPage() {
     apiKey: "",
     modelName: "",
     instruction: "",
+    maxResolution: 0,
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeFile, setActiveFile] = useState<string | undefined>()
@@ -48,6 +49,7 @@ export function CaptioningPage() {
           apiKey: prev.apiKey,
           modelName: prev.modelName || cfg.modelName,
           instruction: prev.instruction || cfg.instruction,
+          maxResolution: prev.maxResolution || cfg.maxResolution,
         }))
       })
       .catch(() => {
@@ -114,6 +116,9 @@ export function CaptioningPage() {
                     : img,
                 ),
               )
+              setActiveFile(undefined)
+              setLiveCaption(undefined)
+            } else if (event.type === "error") {
               setActiveFile(undefined)
               setLiveCaption(undefined)
             }

@@ -13,4 +13,7 @@ export const captioningConfig = {
   DEFAULT_MODEL_NAME: process.env.DEFAULT_MODEL_NAME ?? "gemma-4-uncensored",
   DEFAULT_INSTRUCTION:
     process.env.CAPTIONING_INSTRUCTION || DEFAULT_INSTRUCTION,
+  DEFAULT_MAX_RESOLUTION: process.env.DEFAULT_MAX_RESOLUTION
+    ? Number.parseInt(process.env.DEFAULT_MAX_RESOLUTION, 10)
+    : 1024,
 } as const

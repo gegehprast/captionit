@@ -1,7 +1,9 @@
 import { basename, extname, join, resolve } from "node:path"
 import { err, ok, type Result } from "@bunkit/result"
-import OpenAI from "openai"
+import OpenAI, { APIError } from "openai"
+import sharp from "sharp"
 import type { AppError } from "@/core/errors"
+import { logger } from "@/core/logger"
 import {
   DirectoryAccessError,
   DirectoryNotFoundError,
@@ -121,16 +123,44 @@ export async function* streamCaption(
   apiKey: string,
   model: string,
   instruction: string,
+  maxResolution: number,
 ): AsyncGenerator<string> {
-  const ext = extname(imagePath).toLowerCase()
-  const mime = MIME_MAP[ext] ?? "image/jpeg"
+  // sharp always outputs jpeg after resize, so no need to detect mime from ext
 
   const imageFile = Bun.file(imagePath)
-  const buffer = await imageFile.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString("base64")
-  const dataUrl = `data:${mime};base64,${base64}`
+  const rawBuffer = await imageFile.arrayBuffer()
+  const originalSizeKB = Math.round(rawBuffer.byteLength / 1024)
 
-  const client = new OpenAI({ apiKey, baseURL })
+  logger.debug("Resizing image", {
+    file: basename(imagePath),
+    originalSizeKB,
+    maxResolution,
+  })
+
+  // Resize to maxResolution on the longest side — vision models don't benefit
+  // from higher resolution and large images cause very slow encoding in Ollama
+  const resized = await sharp(Buffer.from(rawBuffer))
+    .resize(maxResolution, maxResolution, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality: 90 })
+    .toBuffer()
+
+  const resizedSizeKB = Math.round(resized.byteLength / 1024)
+  logger.debug("Image resized", {
+    file: basename(imagePath),
+    originalSizeKB,
+    resizedSizeKB,
+    reduction: `${Math.round((1 - resized.byteLength / rawBuffer.byteLength) * 100)}%`,
+  })
+
+  const base64 = resized.toString("base64")
+  const dataUrl = `data:image/jpeg;base64,${base64}`
+
+  const client = new OpenAI({ apiKey, baseURL, timeout: 5 * 60 * 1000 })
+
+  logger.debug("Sending to API", { file: basename(imagePath), model, baseURL })
 
   const stream = await client.chat.completions.create({
     model,
@@ -146,9 +176,28 @@ export async function* streamCaption(
     ],
   })
 
-  for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content ?? ""
-    if (delta) yield delta
+  try {
+    let tokenCount = 0
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content ?? ""
+      if (delta) {
+        tokenCount++
+        yield delta
+      }
+    }
+    logger.debug("API stream complete", {
+      file: basename(imagePath),
+      tokenCount,
+    })
+  } catch (e) {
+    if (e instanceof APIError) {
+      // Surface the real message from Ollama/backend instead of the generic SDK wrapper
+      const detail =
+        (e.error as { error?: { message?: string } } | undefined)?.error
+          ?.message ?? e.message
+      throw new Error(detail)
+    }
+    throw e
   }
 }
 
