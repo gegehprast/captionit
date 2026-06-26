@@ -73,7 +73,7 @@ export function ImageStatusList({
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl">
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-800 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -102,9 +102,9 @@ export function ImageStatusList({
         </div>
       </div>
 
-      <div className="flex" style={{ minHeight: "24rem" }}>
+      <div className="flex items-start">
         {/* Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 p-4 h-[calc(100vh-14rem)] overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {images.map((image) => (
               <ImageThumbnail
