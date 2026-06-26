@@ -1,6 +1,6 @@
 import { basename, extname, join, resolve } from "node:path"
 import { err, ok, type Result } from "@bunkit/result"
-import type OpenAI from "openai"
+import OpenAI from "openai"
 import type { AppError } from "@/core/errors"
 import {
   DirectoryAccessError,
@@ -117,7 +117,8 @@ export async function scanDirectory(
  */
 export async function* streamCaption(
   imagePath: string,
-  client: OpenAI,
+  baseURL: string,
+  apiKey: string,
   model: string,
   instruction: string,
 ): AsyncGenerator<string> {
@@ -128,6 +129,8 @@ export async function* streamCaption(
   const buffer = await imageFile.arrayBuffer()
   const base64 = Buffer.from(buffer).toString("base64")
   const dataUrl = `data:${mime};base64,${base64}`
+
+  const client = new OpenAI({ apiKey, baseURL })
 
   const stream = await client.chat.completions.create({
     model,

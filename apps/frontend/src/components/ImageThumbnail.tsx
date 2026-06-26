@@ -72,10 +72,10 @@ export function ImageThumbnail({
         }`}
       >
         <p className="text-[10px] text-gray-400 truncate font-mono leading-tight">
-          {image.file}
+          {image.file} ({image.sizeMB} MB)
         </p>
         {image.caption ? (
-          <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2 leading-tight">
+          <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
             {image.caption}
           </p>
         ) : (

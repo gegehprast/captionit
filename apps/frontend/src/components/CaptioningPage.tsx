@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import toast from "react-hot-toast"
 import {
   type CaptioningConfig,
   type CaptioningEvent,
@@ -11,15 +12,13 @@ import {
 } from "../lib/captioningApi"
 import { CaptioningForm } from "./CaptioningForm"
 import { ImageStatusList } from "./ImageStatusList"
-import type { FeedLine } from "./ProgressFeed"
-import { buildFeedLines, ProgressFeed } from "./ProgressFeed"
+import { buildFeedLines, type FeedLine, ProgressFeed } from "./ProgressFeed"
 import { SettingsSidebar } from "./SettingsSidebar"
 
 export function CaptioningPage() {
   const [dirPath, setDirPath] = useState("")
   const [scannedDirPath, setScannedDirPath] = useState("")
   const [images, setImages] = useState<ImageFile[]>([])
-  const [feedLines, setFeedLines] = useState<FeedLine[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,8 +33,11 @@ export function CaptioningPage() {
   const [activeFile, setActiveFile] = useState<string | undefined>()
   const [liveCaption, setLiveCaption] = useState<string | undefined>()
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set())
+  const [feedLines, setFeedLines] = useState<FeedLine[]>([])
+  const [feedOpen, setFeedOpen] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
+  const eventsRef = useRef<CaptioningEvent[]>([])
 
   useEffect(() => {
     getCaptioningConfig()
@@ -56,7 +58,6 @@ export function CaptioningPage() {
   const handleScan = useCallback(async (path: string) => {
     setError(null)
     setIsScanning(true)
-    setFeedLines([])
     setCheckedFiles(new Set())
     try {
       const result = await scanDirectory(path)
@@ -72,24 +73,24 @@ export function CaptioningPage() {
   const handleStart = useCallback(
     async (path: string, mode: CaptionMode, filesFilter?: string[]) => {
       setError(null)
-      setFeedLines([])
       setActiveFile(undefined)
       setLiveCaption(undefined)
       setIsStreaming(true)
+      setFeedLines([])
+      setFeedOpen(true)
+      eventsRef.current = []
 
       const ac = new AbortController()
       abortRef.current = ac
 
-      // Re-scan to get fresh status before streaming
+      // Re-scan to get fresh status before streaming (always full dir, not filtered)
       try {
-        const result = await scanDirectory(path, filesFilter)
+        const result = await scanDirectory(path)
         setScannedDirPath(path)
         setImages(result.images)
       } catch {
         // proceed anyway
       }
-
-      const events: CaptioningEvent[] = []
 
       try {
         await streamCaptioning({
@@ -99,8 +100,6 @@ export function CaptioningPage() {
           settings,
           signal: ac.signal,
           onEvent(event) {
-            events.push(event)
-
             // Track active file and live caption
             if (event.type === "image") {
               setActiveFile(event.file)
@@ -108,7 +107,6 @@ export function CaptioningPage() {
             } else if (event.type === "token") {
               setLiveCaption((prev) => (prev ?? "") + event.delta)
             } else if (event.type === "done") {
-              // Update the image in the list
               setImages((prev) =>
                 prev.map((img) =>
                   img.file === event.file
@@ -118,20 +116,33 @@ export function CaptioningPage() {
               )
               setActiveFile(undefined)
               setLiveCaption(undefined)
-            } else if (event.type === "skip") {
-              // no-op
             }
-
-            // Rebuild feed lines (immutable snapshot)
-            const lines = buildFeedLines([...events])
-            setFeedLines(lines)
+            // Accumulate for feed
+            eventsRef.current = [...eventsRef.current, event]
+            setFeedLines(buildFeedLines(eventsRef.current))
           },
         })
       } catch (e) {
-        if ((e as { name?: string }).name !== "AbortError") {
+        if ((e as { name?: string }).name === "AbortError") {
+          toast("Captioning stopped", { icon: "⏹" })
+        } else {
           setError(e instanceof Error ? e.message : String(e))
         }
       } finally {
+        const lastEvent = eventsRef.current.findLast(
+          (ev) => ev.type === "summary",
+        )
+        if (lastEvent?.type === "summary") {
+          const s = lastEvent
+          const msg = `Done — ${s.captioned} captioned${
+            s.skipped > 0 ? `, ${s.skipped} skipped` : ""
+          }${s.failed > 0 ? `, ${s.failed} failed` : ""}`
+          if (s.failed > 0) {
+            toast.error(msg, { duration: 6000 })
+          } else {
+            toast.success(msg, { duration: 5000 })
+          }
+        }
         setIsStreaming(false)
         setActiveFile(undefined)
         setLiveCaption(undefined)
@@ -197,8 +208,6 @@ export function CaptioningPage() {
           </div>
         )}
 
-        {feedLines.length > 0 && <ProgressFeed lines={feedLines} />}
-
         {images.length > 0 && (
           <ImageStatusList
             dirPath={scannedDirPath}
@@ -219,6 +228,13 @@ export function CaptioningPage() {
           />
         )}
       </main>
+
+      <ProgressFeed
+        lines={feedLines}
+        isStreaming={isStreaming}
+        isOpen={feedOpen}
+        onClose={() => setFeedOpen(false)}
+      />
     </div>
   )
 }

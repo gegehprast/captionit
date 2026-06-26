@@ -1,6 +1,5 @@
 import { basename, extname, join } from "node:path"
 import { createRoute } from "@bunkit/server"
-import OpenAI from "openai"
 import { z } from "zod"
 import {
   type CaptionMode,
@@ -381,10 +380,7 @@ createRoute("POST", "/api/captioning/stream")
     const images = scanResult.value
     const resolvedApiKey =
       (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key"
-    const client = new OpenAI({
-      apiKey: resolvedApiKey,
-      baseURL: serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST,
-    })
+    const resolvedBaseURL = serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST
 
     function sseEvent(data: object): string {
       return `data: ${JSON.stringify(data)}\n\n`
@@ -435,7 +431,8 @@ createRoute("POST", "/api/captioning/stream")
             let caption = ""
             for await (const token of streamCaption(
               imagePath,
-              client,
+              resolvedBaseURL,
+              resolvedApiKey,
               modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
               instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
             )) {
