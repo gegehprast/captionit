@@ -55,7 +55,18 @@ export function ImageStatusList({
       lastClickedRef.current = file
       setDetailFile(file)
     } else {
-      onCheckedChange(new Set([file]))
+      if (checkedFiles.has(file) && checkedFiles.size > 1) {
+        // Click on a selected image in a multi-selection → remove just that one
+        const next = new Set(checkedFiles)
+        next.delete(file)
+        onCheckedChange(next)
+      } else if (checkedFiles.size === 1 && checkedFiles.has(file)) {
+        // Click on the only selected image → deselect all
+        onCheckedChange(new Set())
+      } else {
+        // Click on unselected image → select only that one
+        onCheckedChange(new Set([file]))
+      }
       lastClickedRef.current = file
       setDetailFile(file)
     }

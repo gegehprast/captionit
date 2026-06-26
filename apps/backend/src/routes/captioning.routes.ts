@@ -373,8 +373,10 @@ createRoute("POST", "/api/captioning/stream")
     }
 
     const images = scanResult.value
+    const resolvedApiKey =
+      (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key"
     const client = new OpenAI({
-      apiKey: apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY,
+      apiKey: resolvedApiKey,
       baseURL: serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST,
     })
 

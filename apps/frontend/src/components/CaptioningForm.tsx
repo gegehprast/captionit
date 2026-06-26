@@ -76,22 +76,26 @@ export function CaptioningForm({
               Stop
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() =>
-                onStart(
-                  dirPath,
-                  mode,
-                  selectedFiles?.length ? selectedFiles : undefined,
-                )
-              }
-              disabled={!dirPath || busy}
-              className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {selectedFiles?.length
-                ? `Caption Selected (${selectedFiles.length})`
-                : "Caption All"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onStart(dirPath, mode, undefined)}
+                disabled={!dirPath || busy}
+                className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Caption All
+              </button>
+              {selectedFiles && selectedFiles.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onStart(dirPath, mode, selectedFiles)}
+                  disabled={!dirPath || busy}
+                  className="px-4 py-2 bg-violet-800 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Caption Selected ({selectedFiles.length})
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

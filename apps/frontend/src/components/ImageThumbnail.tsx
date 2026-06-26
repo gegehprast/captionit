@@ -23,18 +23,14 @@ export function ImageThumbnail({
         type="button"
         onClick={onClick}
         className={`w-full relative rounded-t-lg overflow-hidden border-2 border-b-0 transition-all focus:outline-none select-none ${
-          isDetail
-            ? "border-violet-500 shadow-lg shadow-violet-900/40"
-            : isActive
-              ? "border-violet-400/60"
-              : isSelected
-                ? "border-violet-700"
-                : "border-gray-700 hover:border-gray-500"
+          isDetail || isActive || isSelected
+            ? "border-violet-500"
+            : "border-gray-700 hover:border-gray-500"
         }`}
       >
         {/* Active pulse ring */}
         {isActive && (
-          <span className="absolute inset-0 z-10 rounded-t-lg ring-2 ring-violet-400 animate-pulse pointer-events-none" />
+          <span className="absolute inset-0 z-10 rounded-t-lg ring-2 ring-violet-500 animate-pulse pointer-events-none" />
         )}
 
         {/* Thumbnail */}
@@ -48,8 +44,8 @@ export function ImageThumbnail({
         </div>
 
         {/* Selection overlay tint */}
-        {isSelected && !isDetail && (
-          <div className="absolute inset-0 bg-violet-500/10 pointer-events-none" />
+        {isSelected && (
+          <div className="absolute inset-0 bg-violet-500/25 pointer-events-none" />
         )}
 
         {/* Caption status badge */}
@@ -70,13 +66,9 @@ export function ImageThumbnail({
       {/* Filename + caption preview below thumbnail */}
       <div
         className={`rounded-b-lg border-2 border-t-0 px-1.5 py-1 bg-gray-800 min-h-10 ${
-          isDetail
+          isDetail || isActive || isSelected
             ? "border-violet-500"
-            : isActive
-              ? "border-violet-400/60"
-              : isSelected
-                ? "border-violet-700"
-                : "border-gray-700 group-hover:border-gray-500"
+            : "border-gray-700 group-hover:border-gray-500"
         }`}
       >
         <p className="text-[10px] text-gray-400 truncate font-mono leading-tight">
