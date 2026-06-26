@@ -20,12 +20,14 @@ async function main() {
   })
 
   // Fail fast if required captioning env vars are missing
-  if (!captioningConfig.SERVICE_API_KEY) {
-    logger.error("Missing required environment variable: SERVICE_API_KEY")
+  if (!captioningConfig.DEFAULT_SERVICE_API_KEY) {
+    logger.error(
+      "Missing required environment variable: DEFAULT_SERVICE_API_KEY",
+    )
     process.exit(1)
   }
-  if (!captioningConfig.SERVICE_HOST) {
-    logger.error("Missing required environment variable: SERVICE_HOST")
+  if (!captioningConfig.DEFAULT_SERVICE_HOST) {
+    logger.error("Missing required environment variable: DEFAULT_SERVICE_HOST")
     process.exit(1)
   }
 

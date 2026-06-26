@@ -35,6 +35,7 @@ export function CaptioningForm({
       <DirectoryBrowser
         value={dirPath}
         onChange={onDirPathChange}
+        onNavigate={onScan}
         disabled={busy}
       />
 
@@ -63,7 +64,7 @@ export function CaptioningForm({
             disabled={!dirPath || busy}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isScanning ? "Scanning…" : "Scan"}
+            {isScanning ? "Reloading…" : "Reload"}
           </button>
 
           {isStreaming ? (

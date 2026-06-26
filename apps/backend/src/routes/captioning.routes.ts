@@ -102,7 +102,9 @@ createRoute("GET", "/api/captioning/browse")
     }
 
     const dirs: string[] = []
-    for (const entry of entries.sort()) {
+    for (const entry of entries.sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    )) {
       try {
         const entryPath = pathJoin(resolvedPath, entry)
         const s = await stat(entryPath)
@@ -176,9 +178,9 @@ createRoute("GET", "/api/captioning/config")
   .response(ConfigResponseSchema)
   .handler(({ res }) => {
     return res.ok({
-      serviceHost: captioningConfig.SERVICE_HOST,
-      modelName: captioningConfig.MODEL_NAME,
-      instruction: captioningConfig.INSTRUCTION,
+      serviceHost: captioningConfig.DEFAULT_SERVICE_HOST,
+      modelName: captioningConfig.DEFAULT_MODEL_NAME,
+      instruction: captioningConfig.DEFAULT_INSTRUCTION,
     })
   })
 
@@ -246,6 +248,58 @@ createRoute("GET", "/api/captioning/image")
   })
 
 /**
+ * PUT /api/captioning/caption
+ * Overwrite the .txt caption file for a given image.
+ */
+createRoute("PUT", "/api/captioning/caption")
+  .openapi({
+    operationId: "saveCaption",
+    summary: "Save caption",
+    description: "Overwrite the caption .txt file for an image",
+    tags: ["Captioning"],
+  })
+  .body(
+    z
+      .object({
+        imagePath: z
+          .string()
+          .min(1)
+          .meta({ example: "/home/user/dataset/photo01.jpg" }),
+        caption: z.string(),
+      })
+      .meta({ id: "SaveCaptionBody", title: "Save Caption Body" }),
+  )
+  .handler(async ({ body, res }) => {
+    const pathResult = validatePath(body.imagePath)
+    if (pathResult.isErr()) {
+      return new Response(
+        JSON.stringify({ message: pathResult.error.message }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
+    const imgPath = pathResult.value
+    const ext = extname(imgPath).toLowerCase()
+    if (!IMAGE_EXTENSIONS.has(ext)) {
+      return new Response(JSON.stringify({ message: "Not an image file" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    const txtPath = join(`${imgPath.slice(0, imgPath.length - ext.length)}.txt`)
+    const result = await writeCaptionFile(txtPath, body.caption, "replace")
+    if (result.isErr()) {
+      return new Response(JSON.stringify({ message: result.error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    return res.ok({ saved: true })
+  })
+
+/**
  * POST /api/captioning/stream
  * SSE endpoint — captions images in a directory and streams progress events.
  *
@@ -268,14 +322,30 @@ createRoute("POST", "/api/captioning/stream")
           .default("store")
           .meta({ example: "store" }),
         filesFilter: z.array(z.string()).optional(),
+        serviceHost: z.string().optional(),
+        apiKey: z.string().optional(),
+        modelName: z.string().optional(),
+        instruction: z.string().optional(),
       })
       .meta({ id: "StreamBody", title: "Stream Request Body" }),
   )
   .handler(async ({ body, req }) => {
-    const { dirPath, mode, filesFilter } = body as {
+    const {
+      dirPath,
+      mode,
+      filesFilter,
+      serviceHost,
+      apiKey,
+      modelName,
+      instruction,
+    } = body as {
       dirPath: string
       mode: CaptionMode
       filesFilter?: string[]
+      serviceHost?: string
+      apiKey?: string
+      modelName?: string
+      instruction?: string
     }
 
     // Validate path upfront
@@ -304,8 +374,8 @@ createRoute("POST", "/api/captioning/stream")
 
     const images = scanResult.value
     const client = new OpenAI({
-      apiKey: captioningConfig.SERVICE_API_KEY,
-      baseURL: captioningConfig.SERVICE_HOST,
+      apiKey: apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY,
+      baseURL: serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST,
     })
 
     function sseEvent(data: object): string {
@@ -358,8 +428,8 @@ createRoute("POST", "/api/captioning/stream")
             for await (const token of streamCaption(
               imagePath,
               client,
-              captioningConfig.MODEL_NAME,
-              captioningConfig.INSTRUCTION,
+              modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
+              instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
             )) {
               if (req.signal.aborted) break
               caption += token

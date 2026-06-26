@@ -8,6 +8,7 @@ declare module "@bunkit/server" {
     "/": Record<string, never>
     "/:path*": { path: string }
     "/api/captioning/browse": Record<string, never>
+    "/api/captioning/caption": Record<string, never>
     "/api/captioning/config": Record<string, never>
     "/api/captioning/image": Record<string, never>
     "/api/captioning/scan": Record<string, never>

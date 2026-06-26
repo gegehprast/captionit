@@ -144,7 +144,7 @@ export function ProgressFeed({ lines }: ProgressFeedProps) {
             return (
               <div
                 key={i}
-                className="text-gray-200 whitespace-pre-wrap break-words"
+                className="text-gray-200 whitespace-pre-wrap wrap-break-word"
               >
                 {line.accumulated}
                 <span className="animate-pulse">▌</span>

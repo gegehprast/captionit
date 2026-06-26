@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   type CaptioningConfig,
   type CaptioningEvent,
+  type CaptioningSettings,
   type CaptionMode,
   getCaptioningConfig,
   type ImageFile,
@@ -12,15 +13,24 @@ import { CaptioningForm } from "./CaptioningForm"
 import { ImageStatusList } from "./ImageStatusList"
 import type { FeedLine } from "./ProgressFeed"
 import { buildFeedLines, ProgressFeed } from "./ProgressFeed"
+import { SettingsSidebar } from "./SettingsSidebar"
 
 export function CaptioningPage() {
   const [dirPath, setDirPath] = useState("")
+  const [scannedDirPath, setScannedDirPath] = useState("")
   const [images, setImages] = useState<ImageFile[]>([])
   const [feedLines, setFeedLines] = useState<FeedLine[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [config, setConfig] = useState<CaptioningConfig | null>(null)
+  const [settings, setSettings] = useState<CaptioningSettings>({
+    serviceHost: "",
+    apiKey: "",
+    modelName: "",
+    instruction: "",
+  })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeFile, setActiveFile] = useState<string | undefined>()
   const [liveCaption, setLiveCaption] = useState<string | undefined>()
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set())
@@ -29,7 +39,15 @@ export function CaptioningPage() {
 
   useEffect(() => {
     getCaptioningConfig()
-      .then(setConfig)
+      .then((cfg) => {
+        setConfig(cfg)
+        setSettings((prev) => ({
+          serviceHost: prev.serviceHost || cfg.serviceHost,
+          apiKey: prev.apiKey,
+          modelName: prev.modelName || cfg.modelName,
+          instruction: prev.instruction || cfg.instruction,
+        }))
+      })
       .catch(() => {
         /* silently ignore if backend not ready */
       })
@@ -42,6 +60,7 @@ export function CaptioningPage() {
     setCheckedFiles(new Set())
     try {
       const result = await scanDirectory(path)
+      setScannedDirPath(path)
       setImages(result.images)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -64,6 +83,7 @@ export function CaptioningPage() {
       // Re-scan to get fresh status before streaming
       try {
         const result = await scanDirectory(path, filesFilter)
+        setScannedDirPath(path)
         setImages(result.images)
       } catch {
         // proceed anyway
@@ -76,6 +96,7 @@ export function CaptioningPage() {
           dirPath: path,
           mode,
           filesFilter,
+          settings,
           signal: ac.signal,
           onEvent(event) {
             events.push(event)
@@ -116,7 +137,7 @@ export function CaptioningPage() {
         setLiveCaption(undefined)
       }
     },
-    [],
+    [settings],
   )
 
   const handleStop = useCallback(() => {
@@ -126,18 +147,38 @@ export function CaptioningPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <header className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-lvw mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">CaptionIt</h1>
-          {config && (
-            <div className="text-xs text-gray-500 text-right">
-              <div>{config.modelName}</div>
-              <div className="truncate max-w-48">{config.serviceHost}</div>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {config && (
+              <div className="text-xs text-gray-500 text-right">
+                <div>{settings.modelName || config.modelName}</div>
+                <div className="truncate max-w-48">
+                  {settings.serviceHost || config.serviceHost}
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+              aria-label="Open settings"
+            >
+              ⚙
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <SettingsSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        settings={settings}
+        onChange={setSettings}
+        disabled={isStreaming}
+      />
+
+      <main className="max-w-lvw mx-auto px-4 py-8 space-y-6">
         <CaptioningForm
           dirPath={dirPath}
           onDirPathChange={setDirPath}
@@ -159,12 +200,21 @@ export function CaptioningPage() {
 
         {images.length > 0 && (
           <ImageStatusList
-            dirPath={dirPath}
+            dirPath={scannedDirPath}
             images={images}
             activeFile={activeFile}
             liveCaption={liveCaption}
             checkedFiles={checkedFiles}
             onCheckedChange={setCheckedFiles}
+            onCaptionSaved={(file, caption) =>
+              setImages((prev) =>
+                prev.map((img) =>
+                  img.file === file
+                    ? { ...img, hasCaption: caption.length > 0, caption }
+                    : img,
+                ),
+              )
+            }
           />
         )}
       </main>

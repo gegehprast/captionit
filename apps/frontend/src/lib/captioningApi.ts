@@ -21,6 +21,13 @@ export interface CaptioningConfig {
   instruction: string
 }
 
+export interface CaptioningSettings {
+  serviceHost: string
+  apiKey: string
+  modelName: string
+  instruction: string
+}
+
 export type CaptioningEvent =
   | { type: "start"; total: number }
   | { type: "image"; file: string; index: number; sizeMB: string }
@@ -73,6 +80,7 @@ export interface StreamCaptioningOptions {
   dirPath: string
   mode: CaptionMode
   filesFilter?: string[]
+  settings?: CaptioningSettings
   onEvent: (event: CaptioningEvent) => void
   signal: AbortSignal
 }
@@ -82,17 +90,43 @@ export function getImageUrl(dirPath: string, file: string): string {
   return `${BASE_URL}/api/captioning/image?path=${encodeURIComponent(filePath)}`
 }
 
+export async function saveCaption(
+  dirPath: string,
+  file: string,
+  caption: string,
+): Promise<void> {
+  const imagePath = `${dirPath.replace(/\/$/, "")}/${file}`
+  const res = await fetch(`${BASE_URL}/api/captioning/caption`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imagePath, caption }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error((body as { message?: string }).message ?? res.statusText)
+  }
+}
+
 export async function streamCaptioning({
   dirPath,
   mode,
   filesFilter,
+  settings,
   onEvent,
   signal,
 }: StreamCaptioningOptions): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/captioning/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dirPath, mode, filesFilter }),
+    body: JSON.stringify({
+      dirPath,
+      mode,
+      filesFilter,
+      ...(settings?.serviceHost ? { serviceHost: settings.serviceHost } : {}),
+      ...(settings?.apiKey ? { apiKey: settings.apiKey } : {}),
+      ...(settings?.modelName ? { modelName: settings.modelName } : {}),
+      ...(settings?.instruction ? { instruction: settings.instruction } : {}),
+    }),
     signal,
   })
 
