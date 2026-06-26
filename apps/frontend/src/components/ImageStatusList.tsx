@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ImageFile } from "../lib/captioningApi"
 import { getImageUrl } from "../lib/captioningApi"
 import { CaptionDetail } from "./CaptionDetail"
@@ -29,6 +29,11 @@ export function ImageStatusList({
   if (images.length === 0) return null
 
   const detailImage = images.find((i) => i.file === detailFile) ?? null
+
+  useEffect(() => {
+    const activeImage = images.find((i) => i.file === activeFile)
+    setDetailFile(activeImage?.file ?? images[0].file)
+  }, [activeFile])
 
   const handleClick = (file: string, e: React.MouseEvent) => {
     if (e.shiftKey && lastClickedRef.current) {
