@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import type { CaptioningEvent } from "../lib/captioningApi"
+import { readFeedPrefs, writeFeedPrefs, type CaptioningEvent } from "../lib/captioningApi"
 
 export type FeedLine =
   | { kind: "info"; text: string }
@@ -125,12 +125,17 @@ export function ProgressFeed({
   isOpen,
   onClose,
 }: ProgressFeedProps) {
-  const [minimized, setMinimized] = useState(false)
+  const [minimized, setMinimized] = useState(
+    () => readFeedPrefs()?.minimized ?? false,
+  )
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const dragOffsetRef = useRef({ x: 0, y: 0 })
+  // Refs kept in sync with state so event handlers can read latest values without stale closures
+  const positionRef = useRef(position)
+  const minimizedRef = useRef(minimized)
 
   const clampPosition = (x: number, y: number) => {
     const panel = panelRef.current
@@ -145,16 +150,21 @@ export function ProgressFeed({
     }
   }
 
+  useEffect(() => { positionRef.current = position }, [position])
+  useEffect(() => { minimizedRef.current = minimized }, [minimized])
+
   // Auto-expand when streaming starts
   useEffect(() => {
     if (isStreaming) setMinimized(false)
   }, [isStreaming])
 
-  // Initialize the panel position once we can measure the viewport and panel.
+  // Initialize position: restore from saved prefs (clamped) or default to bottom-right
   useEffect(() => {
     if (!isOpen) return
-
-    const updateInitialPosition = () => {
+    const saved = readFeedPrefs()
+    if (saved) {
+      setPosition(clampPosition(saved.x, saved.y))
+    } else {
       const panel = panelRef.current
       const panelWidth = panel?.offsetWidth ?? 384
       const panelHeight = panel?.offsetHeight ?? 360
@@ -163,8 +173,6 @@ export function ProgressFeed({
         y: Math.max(16, window.innerHeight - panelHeight - 16),
       })
     }
-
-    updateInitialPosition()
   }, [isOpen])
 
   useEffect(() => {
@@ -192,6 +200,7 @@ export function ProgressFeed({
 
     const handleUp = () => {
       setIsDragging(false)
+      writeFeedPrefs({ ...positionRef.current, minimized: minimizedRef.current })
     }
 
     window.addEventListener("pointermove", handleMove)
@@ -255,7 +264,13 @@ export function ProgressFeed({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setMinimized((m) => !m)}
+            onClick={() => {
+              setMinimized((m) => {
+                const next = !m
+                writeFeedPrefs({ ...positionRef.current, minimized: next })
+                return next
+              })
+            }}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors text-xs leading-none"
             aria-label={minimized ? "Expand" : "Minimize"}
           >
