@@ -199,11 +199,15 @@ export function CaptioningPage() {
   const handleScan = useCallback(async (path: string) => {
     setError(null)
     setIsScanning(true)
-    setCheckedFiles(new Set())
+
     try {
       const result = await scanDirectory(path)
       setScannedDirPath(path)
       setImages(result.images)
+
+      const set = new Set<string>()
+      set.add(result.images[0]?.file)
+      setCheckedFiles(set)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {

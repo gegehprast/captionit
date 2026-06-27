@@ -40,6 +40,10 @@ export function ImageStatusList({
     setDetailFile(activeImage.file)
   }, [activeFile, images])
 
+  useEffect(() => {
+    lastClickedRef.current = images[0]?.file ?? null
+  }, [images])
+
   const handleClick = (file: string, e: React.MouseEvent) => {
     if (e.shiftKey && lastClickedRef.current) {
       const anchorIdx = images.findIndex(
