@@ -6,8 +6,19 @@ interface ImageThumbnailProps {
   isActive: boolean
   isSelected: boolean
   isDetail: boolean
+  isFocused?: boolean
   onClick: (e: React.MouseEvent) => void
 }
+
+// main div styles
+const isActiveStyle =
+  "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)] animate-pulse"
+const isDetailStyle =
+  "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)]"
+const isSelectedStyle =
+  "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)]"
+const isFocusedStyle = "border-gray-400"
+const defaultStyle = "border-gray-700 hover:border-gray-500"
 
 export function ImageThumbnail({
   image,
@@ -15,20 +26,23 @@ export function ImageThumbnail({
   isActive,
   isSelected,
   isDetail,
+  isFocused = false,
   onClick,
 }: ImageThumbnailProps) {
   return (
     <div
       className={`relative group flex flex-col rounded-lg overflow-hidden border-2 transition-all ${
-        isDetail || isActive || isSelected
-          ? "border-pink-400 shadow-[0_0_0_1px_rgba(236,72,153,0.55),0_0_24px_rgba(236,72,153,0.22)]"
-          : "border-gray-700 hover:border-gray-500"
+        isActive
+          ? isActiveStyle
+          : isDetail
+            ? isDetailStyle
+            : isSelected
+              ? isSelectedStyle
+              : isFocused
+                ? isFocusedStyle
+                : defaultStyle
       }`}
     >
-      {isActive && (
-        <span className="absolute inset-0 z-20 rounded-lg border-4 border-pink-300/90 animate-pulse pointer-events-none" />
-      )}
-
       <button
         type="button"
         onClick={onClick}

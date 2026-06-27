@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useImageKeyboardNav } from "../hooks/useImageKeyboardNav"
 import type { ImageFile } from "../lib/captioningApi"
 import { getImageUrl } from "../lib/captioningApi"
 import { CaptionDetail } from "./CaptionDetail"
@@ -25,11 +26,23 @@ export function ImageStatusList({
 }: ImageStatusListProps) {
   const [detailFile, setDetailFile] = useState<string>(images[0]?.file)
   const [following, setFollowing] = useState(true)
-  const lastClickedRef = useRef<string | null>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   if (images.length === 0) return null
 
   const detailImage = images.find((i) => i.file === detailFile) ?? null
+
+  const handleDetailChange = useCallback((file: string) => {
+    setDetailFile(file)
+    setFollowing(false)
+  }, [])
+
+  const { focusedIdx, syncFocus } = useImageKeyboardNav({
+    images,
+    onCheckedChange,
+    onDetailChange: handleDetailChange,
+    gridRef,
+  })
 
   useEffect(() => {
     if (!activeFile || !following) return
@@ -43,14 +56,11 @@ export function ImageStatusList({
     if (!activeFile) setFollowing(true)
   }, [activeFile])
 
-  useEffect(() => {
-    lastClickedRef.current = images[0]?.file ?? null
-  }, [images])
-
   const handleClick = (file: string, e: React.MouseEvent) => {
-    if (e.shiftKey && lastClickedRef.current) {
+    syncFocus(file)
+    if (e.shiftKey) {
       const anchorIdx = images.findIndex(
-        (i) => i.file === lastClickedRef.current,
+        (i) => i.file === images[focusedIdx]?.file,
       )
       const targetIdx = images.findIndex((i) => i.file === file)
       const [start, end] =
@@ -69,23 +79,19 @@ export function ImageStatusList({
         next.add(file)
       }
       onCheckedChange(next)
-      lastClickedRef.current = file
       setDetailFile(file)
     } else {
       if (checkedFiles.has(file) && checkedFiles.size > 1) {
-        // Click on a selected image in a multi-selection → remove just that one
         const next = new Set(checkedFiles)
         next.delete(file)
         onCheckedChange(next)
       } else if (checkedFiles.size === 1 && checkedFiles.has(file)) {
-        // Click on the only selected image → deselect all
         onCheckedChange(new Set())
       } else {
-        // Click on unselected image → select only that one
         onCheckedChange(new Set([file]))
       }
-      lastClickedRef.current = file
       setDetailFile(file)
+      setFollowing(false)
     }
   }
 
@@ -135,8 +141,11 @@ export function ImageStatusList({
       <div className="flex items-start">
         {/* Grid */}
         <div className="flex-1 p-4 h-[calc(100vh-14rem)] overflow-y-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3">
-            {images.map((image) => (
+          <div
+            ref={gridRef}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3"
+          >
+            {images.map((image, idx) => (
               <ImageThumbnail
                 key={image.file}
                 image={image}
@@ -144,6 +153,7 @@ export function ImageStatusList({
                 isActive={image.file === activeFile}
                 isSelected={checkedFiles.has(image.file)}
                 isDetail={image.file === detailFile}
+                isFocused={idx === focusedIdx}
                 onClick={(e) => handleClick(image.file, e)}
               />
             ))}
