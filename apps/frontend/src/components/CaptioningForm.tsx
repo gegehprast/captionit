@@ -30,7 +30,6 @@ export function CaptioningForm({
   onModeChange,
   selectedFiles,
 }: CaptioningFormProps) {
-
   const busy = isScanning || isStreaming
 
   return (

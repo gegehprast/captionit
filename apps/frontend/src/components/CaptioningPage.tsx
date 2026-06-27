@@ -5,40 +5,29 @@ import {
   type CaptioningEvent,
   type CaptioningSettings,
   type CaptionMode,
+  clearPersistedSession,
   connectToSession,
   getCaptioningConfig,
   getCaptioningSession,
   type ImageFile,
+  readPersistedSession,
   scanDirectory,
   startCaptioningSession,
   stopCaptioningSession,
+  writePersistedSession,
 } from "../lib/captioningApi"
 import { CaptioningForm } from "./CaptioningForm"
 import { ImageStatusList } from "./ImageStatusList"
 import { buildFeedLines, type FeedLine, ProgressFeed } from "./ProgressFeed"
 import { SettingsSidebar } from "./SettingsSidebar"
 
-const SESSION_STORAGE_KEY = "captionit-session"
-
 export function CaptioningPage() {
-  const [dirPath, setDirPath] = useState(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_STORAGE_KEY)
-      if (!raw) return ""
-      return (JSON.parse(raw) as { dirPath?: string }).dirPath ?? ""
-    } catch {
-      return ""
-    }
-  })
-  const [mode, setMode] = useState<CaptionMode>(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_STORAGE_KEY)
-      if (!raw) return "store"
-      return (JSON.parse(raw) as { mode?: CaptionMode }).mode ?? "store"
-    } catch {
-      return "store"
-    }
-  })
+  const [dirPath, setDirPath] = useState(
+    () => readPersistedSession()?.dirPath ?? "",
+  )
+  const [mode, setMode] = useState<CaptionMode>(
+    () => readPersistedSession()?.mode ?? "store",
+  )
   const [scannedDirPath, setScannedDirPath] = useState("")
   const [images, setImages] = useState<ImageFile[]>([])
   const [isScanning, setIsScanning] = useState(false)
@@ -87,25 +76,17 @@ export function CaptioningPage() {
     let cancelled = false
     let localDisconnect: (() => void) | null = null
 
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY)
-    if (!raw) return
+    const saved = readPersistedSession()
+    if (!saved) return
 
-    let parsed: { sessionId: string; dirPath: string }
-    try {
-      parsed = JSON.parse(raw) as { sessionId: string; dirPath: string }
-    } catch {
-      localStorage.removeItem(SESSION_STORAGE_KEY)
-      return
-    }
-
-    const { sessionId, dirPath: savedDirPath } = parsed
+    const { sessionId, dirPath: savedDirPath } = saved
 
     getCaptioningSession(sessionId)
       .then(async (state) => {
         if (cancelled) return
 
         if (!state || state.status !== "running") {
-          localStorage.removeItem(SESSION_STORAGE_KEY)
+          clearPersistedSession()
           return
         }
 
@@ -141,7 +122,7 @@ export function CaptioningPage() {
         disconnectRef.current = localDisconnect
       })
       .catch(() => {
-        if (!cancelled) localStorage.removeItem(SESSION_STORAGE_KEY)
+        if (!cancelled) clearPersistedSession()
       })
 
     return () => {
@@ -205,7 +186,7 @@ export function CaptioningPage() {
       }
     }
 
-    localStorage.removeItem(SESSION_STORAGE_KEY)
+    clearPersistedSession()
     sessionIdRef.current = null
     disconnectRef.current = null
     setIsStreaming(false)
@@ -250,10 +231,7 @@ export function CaptioningPage() {
           filesFilter,
         )
         sessionIdRef.current = sessionId
-        localStorage.setItem(
-          SESSION_STORAGE_KEY,
-          JSON.stringify({ sessionId, dirPath: path, mode }),
-        )
+        writePersistedSession({ sessionId, dirPath: path, mode })
 
         // Rescan to get fresh image list before events start arriving
         try {
@@ -277,7 +255,7 @@ export function CaptioningPage() {
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
         setIsStreaming(false)
-        localStorage.removeItem(SESSION_STORAGE_KEY)
+        clearPersistedSession()
       }
     },
     [settings, handleEvent, handleSessionClose],
