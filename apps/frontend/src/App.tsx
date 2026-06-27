@@ -6,7 +6,8 @@ export default function App() {
     <>
       <CaptioningPage />
       <Toaster
-        position="bottom-right"
+        position="top-right"
+        containerStyle={{ top: "4.5rem" }}
         toastOptions={{
           style: {
             background: "#1f2937",
