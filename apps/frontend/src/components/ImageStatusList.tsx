@@ -12,6 +12,8 @@ interface ImageStatusListProps {
   liveCaption?: string
   checkedFiles: Set<string>
   onCheckedChange: (files: Set<string>) => void
+  lockedFiles: Set<string>
+  onToggleLocked: (file: string) => void
   onCaptionSaved?: (file: string, caption: string) => void
 }
 
@@ -22,6 +24,8 @@ export function ImageStatusList({
   liveCaption,
   checkedFiles,
   onCheckedChange,
+  lockedFiles,
+  onToggleLocked,
   onCaptionSaved,
 }: ImageStatusListProps) {
   const [detailFile, setDetailFile] = useState<string>(images[0]?.file)
@@ -153,6 +157,8 @@ export function ImageStatusList({
                 isActive={image.file === activeFile}
                 isSelected={checkedFiles.has(image.file)}
                 isDetail={image.file === detailFile}
+                isLocked={lockedFiles.has(image.file)}
+                onToggleLocked={() => onToggleLocked(image.file)}
                 onClick={(e) => handleClick(image.file, e)}
               />
             ))}

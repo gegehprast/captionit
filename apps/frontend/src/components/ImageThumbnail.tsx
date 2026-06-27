@@ -6,6 +6,8 @@ interface ImageThumbnailProps {
   isActive: boolean
   isSelected: boolean
   isDetail: boolean
+  isLocked: boolean
+  onToggleLocked: () => void
   onClick: (e: React.MouseEvent) => void
 }
 
@@ -15,6 +17,8 @@ export function ImageThumbnail({
   isActive,
   isSelected,
   isDetail,
+  isLocked,
+  onToggleLocked,
   onClick,
 }: ImageThumbnailProps) {
   return (
@@ -44,7 +48,7 @@ export function ImageThumbnail({
           <img
             src={src}
             alt={image.file}
-            className="w-full h-full object-cover object-[30%_30%] group-hover:object-[20%_20%] transition-all"
+            className={`w-full h-full object-cover object-[30%_30%] group-hover:object-[20%_20%] transition-all ${isLocked ? "brightness-50" : ""}`}
             loading="lazy"
           />
         </div>
@@ -66,6 +70,41 @@ export function ImageThumbnail({
             </span>
           ) : null}
         </div>
+      </button>
+
+      {/* Lock toggle button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleLocked()
+        }}
+        title={isLocked ? "Unlock image" : "Lock image (skip captioning)"}
+        className={`absolute top-1.5 left-1.5 z-20 rounded w-6 h-6 flex items-center justify-center transition-all ${
+          isLocked
+            ? "bg-yellow-500/90 text-gray-900 opacity-100"
+            : "bg-gray-900/60 text-gray-300 opacity-0 group-hover:opacity-100"
+        }`}
+      >
+        {isLocked ? (
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            className="w-3.5 h-3.5"
+          >
+            <path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 9a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" />
+          </svg>
+        ) : (
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            className="w-3.5 h-3.5"
+          >
+            <path d="M17 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-5V6a3 3 0 0 1 6 0v1h2V6a5 5 0 0 0-5-5zm-5 11a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" />
+          </svg>
+        )}
       </button>
 
       {/* Filename + caption preview below thumbnail */}

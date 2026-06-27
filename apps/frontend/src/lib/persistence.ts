@@ -88,6 +88,35 @@ export function writeFeedPrefs(prefs: FeedPrefs): void {
   _feedPrefsCache = prefs
 }
 
+// --- Locked files (per directory) ---
+
+const LOCKED_FILES_KEY = "captionit-locked"
+
+type LockedFilesStore = Record<string, string[]>
+
+export function readLockedFiles(dirPath: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(LOCKED_FILES_KEY)
+    const store: LockedFilesStore = raw ? JSON.parse(raw) : {}
+    return new Set(store[dirPath] ?? [])
+  } catch {
+    return new Set()
+  }
+}
+
+export function writeLockedFiles(dirPath: string, files: Set<string>): void {
+  try {
+    const raw = localStorage.getItem(LOCKED_FILES_KEY)
+    const store: LockedFilesStore = raw ? JSON.parse(raw) : {}
+    if (files.size === 0) {
+      delete store[dirPath]
+    } else {
+      store[dirPath] = [...files]
+    }
+    localStorage.setItem(LOCKED_FILES_KEY, JSON.stringify(store))
+  } catch {}
+}
+
 // --- Captioning settings ---
 
 const SETTINGS_KEY = "captionit-settings"

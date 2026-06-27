@@ -44,9 +44,11 @@ import {
 } from "../lib/captioningApi"
 import {
   clearPersistedSession,
+  readLockedFiles,
   readPersistedSession,
   readSettings,
   readUserPrefs,
+  writeLockedFiles,
   writePersistedSession,
   writeSettings,
   writeUserPrefs,
@@ -83,11 +85,24 @@ export function CaptioningPage() {
   const [activeFile, setActiveFile] = useState<string | undefined>()
   const [liveCaption, setLiveCaption] = useState<string | undefined>()
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set())
+  const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set())
   const [feedLines, setFeedLines] = useState<FeedLine[]>([])
   const [feedOpen, setFeedOpen] = useState(false)
   const [isStopPending, setIsStopPending] = useState(false)
 
   const sessionIdRef = useRef<string | null>(null)
+  const lockedFilesRef = useRef(lockedFiles)
+  const scannedDirPathRef = useRef(scannedDirPath)
+  const imagesRef = useRef(images)
+  useEffect(() => {
+    lockedFilesRef.current = lockedFiles
+  }, [lockedFiles])
+  useEffect(() => {
+    scannedDirPathRef.current = scannedDirPath
+  }, [scannedDirPath])
+  useEffect(() => {
+    imagesRef.current = images
+  }, [images])
   const eventsRef = useRef<CaptioningEvent[]>([])
   const stopPendingRef = useRef(false)
   const disconnectRef = useRef<(() => void) | null>(null)
@@ -240,6 +255,16 @@ export function CaptioningPage() {
     setLiveCaption(undefined)
   }, [])
 
+  const toggleLocked = useCallback((file: string) => {
+    setLockedFiles((prev) => {
+      const next = new Set(prev)
+      if (next.has(file)) next.delete(file)
+      else next.add(file)
+      writeLockedFiles(scannedDirPathRef.current, next)
+      return next
+    })
+  }, [])
+
   const handleScan = useCallback(async (path: string) => {
     setError(null)
     setIsScanning(true)
@@ -248,6 +273,7 @@ export function CaptioningPage() {
       const result = await scanDirectory(path)
       setScannedDirPath(path)
       setImages(result.images)
+      setLockedFiles(readLockedFiles(path))
 
       const set = new Set<string>()
       set.add(result.images[0]?.file)
@@ -261,6 +287,17 @@ export function CaptioningPage() {
 
   const handleStart = useCallback(
     async (path: string, mode: CaptionMode, filesFilter?: string[]) => {
+      const locked = lockedFilesRef.current
+      let filter = filesFilter
+      if (locked.size > 0) {
+        const base = filter ?? imagesRef.current.map((i) => i.file)
+        filter = base.filter((f) => !locked.has(f))
+        if (filter.length === 0) {
+          toast.error("All selected images are locked, nothing to caption.")
+          return
+        }
+      }
+
       setError(null)
       setActiveFile(undefined)
       setLiveCaption(undefined)
@@ -276,7 +313,7 @@ export function CaptioningPage() {
           path,
           mode,
           settings,
-          filesFilter,
+          filter,
         )
         sessionIdRef.current = sessionId
         writePersistedSession({ sessionId, dirPath: path, mode })
@@ -382,6 +419,8 @@ export function CaptioningPage() {
             liveCaption={liveCaption}
             checkedFiles={checkedFiles}
             onCheckedChange={setCheckedFiles}
+            lockedFiles={lockedFiles}
+            onToggleLocked={toggleLocked}
             onCaptionSaved={(file, caption) =>
               setImages((prev) =>
                 prev.map((img) =>
