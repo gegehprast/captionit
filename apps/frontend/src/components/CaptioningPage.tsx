@@ -8,6 +8,7 @@ import {
   getCaptioningConfig,
   type ImageFile,
   scanDirectory,
+  stopCaptioningSession,
   streamCaptioning,
 } from "../lib/captioningApi"
 import { CaptioningForm } from "./CaptioningForm"
@@ -39,6 +40,7 @@ export function CaptioningPage() {
   const [isStopPending, setIsStopPending] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
+  const sessionIdRef = useRef<string | null>(null)
   const eventsRef = useRef<CaptioningEvent[]>([])
   const stopPendingRef = useRef(false)
 
@@ -88,6 +90,8 @@ export function CaptioningPage() {
 
       const ac = new AbortController()
       abortRef.current = ac
+      const sessionId = crypto.randomUUID()
+      sessionIdRef.current = sessionId
 
       // Re-scan to get fresh status before streaming (always full dir, not filtered)
       try {
@@ -104,6 +108,7 @@ export function CaptioningPage() {
           mode,
           filesFilter,
           settings,
+          sessionId,
           signal: ac.signal,
           onEvent(event) {
             // Track active file and live caption
@@ -136,6 +141,7 @@ export function CaptioningPage() {
                 event.type === "error" ||
                 event.type === "skip")
             ) {
+              stopCaptioningSession(sessionId).catch(() => {})
               abortRef.current?.abort()
             }
           },
@@ -144,9 +150,13 @@ export function CaptioningPage() {
         if ((e as { name?: string }).name === "AbortError") {
           toast("Stopped after the current image finished", { icon: "⏹" })
         } else {
-          setError(e instanceof Error ? e.message : String(e))
+          toast.error(
+            `Stream interrupted: ${e instanceof Error ? e.message : String(e)}`,
+            { duration: 6000 },
+          )
         }
       } finally {
+        sessionIdRef.current = null
         const lastEvent = eventsRef.current.findLast(
           (ev) => ev.type === "summary",
         )

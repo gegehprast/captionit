@@ -84,8 +84,17 @@ export interface StreamCaptioningOptions {
   mode: CaptionMode
   filesFilter?: string[]
   settings?: CaptioningSettings
+  sessionId: string
   onEvent: (event: CaptioningEvent) => void
   signal: AbortSignal
+}
+
+export async function stopCaptioningSession(sessionId: string): Promise<void> {
+  await fetch(`${BASE_URL}/api/captioning/stop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  })
 }
 
 export function getImageUrl(dirPath: string, file: string): string {
@@ -115,6 +124,7 @@ export async function streamCaptioning({
   mode,
   filesFilter,
   settings,
+  sessionId,
   onEvent,
   signal,
 }: StreamCaptioningOptions): Promise<void> {
@@ -125,6 +135,7 @@ export async function streamCaptioning({
       dirPath,
       mode,
       filesFilter,
+      sessionId,
       ...(settings?.serviceHost ? { serviceHost: settings.serviceHost } : {}),
       ...(settings?.apiKey ? { apiKey: settings.apiKey } : {}),
       ...(settings?.modelName ? { modelName: settings.modelName } : {}),

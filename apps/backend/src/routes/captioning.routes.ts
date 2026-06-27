@@ -13,6 +13,8 @@ import {
 import { captioningConfig } from "@/config/captioning"
 import { logger } from "@/core/logger"
 
+const activeSessions = new Map<string, AbortController>()
+
 // --- Shared Schemas ---
 
 const ImageFileSchema = z
@@ -307,6 +309,31 @@ createRoute("PUT", "/api/captioning/caption")
   })
 
 /**
+ * POST /api/captioning/stop
+ * Signal a running session to stop after the current image finishes.
+ */
+createRoute("POST", "/api/captioning/stop")
+  .openapi({
+    operationId: "stopCaptioning",
+    summary: "Stop captioning session",
+    description:
+      "Signals a running captioning session to stop after the current image",
+    tags: ["Captioning"],
+  })
+  .body(
+    z
+      .object({ sessionId: z.string() })
+      .meta({ id: "StopBody", title: "Stop Request Body" }),
+  )
+  .handler(({ body }) => {
+    const ac = activeSessions.get(body.sessionId)
+    if (ac) ac.abort()
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { "Content-Type": "application/json" },
+    })
+  })
+
+/**
  * POST /api/captioning/stream
  * SSE endpoint — captions images in a directory and streams progress events.
  *
@@ -334,10 +361,11 @@ createRoute("POST", "/api/captioning/stream")
         modelName: z.string().optional(),
         instruction: z.string().optional(),
         maxResolution: z.number().int().positive().optional(),
+        sessionId: z.string().optional(),
       })
       .meta({ id: "StreamBody", title: "Stream Request Body" }),
   )
-  .handler(async ({ body, req }) => {
+  .handler(async ({ body }) => {
     const {
       dirPath,
       mode,
@@ -347,6 +375,7 @@ createRoute("POST", "/api/captioning/stream")
       modelName,
       instruction,
       maxResolution,
+      sessionId,
     } = body as {
       dirPath: string
       mode: CaptionMode
@@ -356,6 +385,7 @@ createRoute("POST", "/api/captioning/stream")
       modelName?: string
       instruction?: string
       maxResolution?: number
+      sessionId?: string
     }
 
     // Validate path upfront
@@ -387,6 +417,9 @@ createRoute("POST", "/api/captioning/stream")
       (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key"
     const resolvedBaseURL = serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST
 
+    const sessionAc = new AbortController()
+    if (sessionId) activeSessions.set(sessionId, sessionAc)
+
     function sseEvent(data: object): string {
       return `data: ${JSON.stringify(data)}\n\n`
     }
@@ -401,114 +434,121 @@ createRoute("POST", "/api/captioning/stream")
           }
         }
 
-        enqueue({ type: "start", total: images.length })
-
-        logger.info("Captioning session started", {
-          total: images.length,
-          mode,
-          model: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
-          baseURL: resolvedBaseURL,
-          maxResolution:
-            maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
-        })
-
         let captioned = 0
         let skipped = 0
         let failed = 0
 
-        for (const image of images) {
-          // Abort if client closed connection
-          if (req.signal.aborted) break
+        try {
+          enqueue({ type: "start", total: images.length })
 
-          const resolvedDir = pathResult.value
-          const imagePath = join(resolvedDir, image.file)
-          const txtPath = join(
-            resolvedDir,
-            `${basename(image.file, extname(image.file))}.txt`,
-          )
-
-          // In "store" mode, skip already-captioned images
-          if (mode === "store" && image.hasCaption) {
-            logger.debug("Skipping already-captioned image", {
-              file: image.file,
-            })
-            enqueue({ type: "skip", file: image.file })
-            skipped++
-            continue
-          }
-
-          enqueue({
-            type: "image",
-            file: image.file,
-            index: images.indexOf(image) + 1,
-            sizeMB: image.sizeMB,
-          })
-
-          logger.info("Captioning image", {
-            file: image.file,
-            index: images.indexOf(image) + 1,
+          logger.info("Captioning session started", {
             total: images.length,
-            sizeMB: image.sizeMB,
+            mode,
+            model: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
+            baseURL: resolvedBaseURL,
+            maxResolution:
+              maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
           })
 
-          try {
-            let caption = ""
-            for await (const token of streamCaption(
-              imagePath,
-              resolvedBaseURL,
-              resolvedApiKey,
-              modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
-              instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
-              maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
-            )) {
-              if (req.signal.aborted) break
-              caption += token
-              enqueue({ type: "token", delta: token })
-            }
+          for (const image of images) {
+            if (sessionAc.signal.aborted) break
 
-            caption = caption.trim()
-            if (!caption) {
-              enqueue({
-                type: "error",
+            const resolvedDir = pathResult.value
+            const imagePath = join(resolvedDir, image.file)
+            const txtPath = join(
+              resolvedDir,
+              `${basename(image.file, extname(image.file))}.txt`,
+            )
+
+            // In "store" mode, skip already-captioned images
+            if (mode === "store" && image.hasCaption) {
+              logger.debug("Skipping already-captioned image", {
                 file: image.file,
-                message: "Empty response from API",
               })
-              failed++
+              enqueue({ type: "skip", file: image.file })
+              skipped++
               continue
             }
 
-            const writeResult = await writeCaptionFile(txtPath, caption, mode)
-            if (writeResult.isErr()) {
-              enqueue({
-                type: "error",
-                file: image.file,
-                message: writeResult.error.message,
-              })
-              failed++
-              continue
-            }
-
-            enqueue({ type: "done", file: image.file, caption })
-            logger.info("Caption saved", {
+            enqueue({
+              type: "image",
               file: image.file,
-              captionLength: caption.length,
+              index: images.indexOf(image) + 1,
+              sizeMB: image.sizeMB,
             })
-            captioned++
-          } catch (e) {
-            const message = e instanceof Error ? e.message : String(e)
-            logger.error("Captioning failed", { file: image.file, error: e })
-            enqueue({ type: "error", file: image.file, message })
-            failed++
+
+            logger.info("Captioning image", {
+              file: image.file,
+              index: images.indexOf(image) + 1,
+              total: images.length,
+              sizeMB: image.sizeMB,
+            })
+
+            try {
+              let caption = ""
+              for await (const token of streamCaption(
+                imagePath,
+                resolvedBaseURL,
+                resolvedApiKey,
+                modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
+                instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
+                maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
+              )) {
+                caption += token
+                enqueue({ type: "token", delta: token })
+              }
+
+              caption = caption.trim()
+              if (!caption) {
+                enqueue({
+                  type: "error",
+                  file: image.file,
+                  message: "Empty response from API",
+                })
+                failed++
+                continue
+              }
+
+              const writeResult = await writeCaptionFile(txtPath, caption, mode)
+              if (writeResult.isErr()) {
+                enqueue({
+                  type: "error",
+                  file: image.file,
+                  message: writeResult.error.message,
+                })
+                failed++
+                continue
+              }
+
+              enqueue({ type: "done", file: image.file, caption })
+              logger.info("Caption saved", {
+                file: image.file,
+                captionLength: caption.length,
+              })
+              captioned++
+            } catch (e) {
+              const message = e instanceof Error ? e.message : String(e)
+              logger.error("Captioning failed", { file: image.file, error: e })
+              enqueue({ type: "error", file: image.file, message })
+              failed++
+            }
+          }
+        } catch (e) {
+          logger.error("Unexpected error in captioning stream", { error: e })
+        } finally {
+          if (sessionId) activeSessions.delete(sessionId)
+          enqueue({ type: "summary", captioned, skipped, failed })
+          logger.info("Captioning session complete", {
+            captioned,
+            skipped,
+            failed,
+          })
+          try {
+            controller.close()
+          } catch {
+            // already closed
           }
         }
-
-        enqueue({ type: "summary", captioned, skipped, failed })
-        logger.info("Captioning session complete", {
-          captioned,
-          skipped,
-          failed,
-        })
-        controller.close()
       },
     })
 

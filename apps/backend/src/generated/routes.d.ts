@@ -12,6 +12,7 @@ declare module "@bunkit/server" {
     "/api/captioning/config": Record<string, never>
     "/api/captioning/image": Record<string, never>
     "/api/captioning/scan": Record<string, never>
+    "/api/captioning/stop": Record<string, never>
     "/api/captioning/stream": Record<string, never>
     "/api/health": Record<string, never>
     "/api/redirect-external": Record<string, never>
