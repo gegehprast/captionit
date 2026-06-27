@@ -1,7 +1,13 @@
 #!/bin/sh
 
-# pull the latest changes from the remote repository
+BEFORE=$(git rev-parse HEAD)
+
 git pull origin main
 
-# rebuild the app
-bun run build
+AFTER=$(git rev-parse HEAD)
+
+if [ "$BEFORE" = "$AFTER" ]; then
+  echo "Already up to date, skipping rebuild."
+else
+  bun run build
+fi
