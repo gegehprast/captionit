@@ -4,67 +4,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001"
 
 export type CaptionMode = "store" | "append" | "replace"
 
-// --- Session persistence ---
-
-const SESSION_STORAGE_KEY = "captionit-session"
-
-export interface PersistedSession {
-  sessionId: string
-  dirPath: string
-  mode: CaptionMode
-}
-
-let _sessionCache: PersistedSession | null
-
-export function readPersistedSession(): PersistedSession | null {
-  if (_sessionCache !== undefined) return _sessionCache
-  try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY)
-    _sessionCache = raw ? (JSON.parse(raw) as PersistedSession) : null
-  } catch {
-    _sessionCache = null
-  }
-  return _sessionCache
-}
-
-export function writePersistedSession(session: PersistedSession): void {
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
-  _sessionCache = session
-}
-
-export function clearPersistedSession(): void {
-  localStorage.removeItem(SESSION_STORAGE_KEY)
-  _sessionCache = null
-}
-
-// --- Feed panel preferences ---
-
-const FEED_PREFS_KEY = "captionit-feed-prefs"
-
-export interface FeedPrefs {
-  x: number
-  y: number
-  minimized: boolean
-}
-
-let _feedPrefsCache: FeedPrefs | null
-
-export function readFeedPrefs(): FeedPrefs | null {
-  if (_feedPrefsCache !== undefined) return _feedPrefsCache
-  try {
-    const raw = localStorage.getItem(FEED_PREFS_KEY)
-    _feedPrefsCache = raw ? (JSON.parse(raw) as FeedPrefs) : null
-  } catch {
-    _feedPrefsCache = null
-  }
-  return _feedPrefsCache
-}
-
-export function writeFeedPrefs(prefs: FeedPrefs): void {
-  localStorage.setItem(FEED_PREFS_KEY, JSON.stringify(prefs))
-  _feedPrefsCache = prefs
-}
-
 export interface ImageFile {
   file: string
   hasCaption: boolean

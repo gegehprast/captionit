@@ -24,6 +24,7 @@ export function ImageStatusList({
   onCaptionSaved,
 }: ImageStatusListProps) {
   const [detailFile, setDetailFile] = useState<string>(images[0]?.file)
+  const [following, setFollowing] = useState(true)
   const lastClickedRef = useRef<string | null>(null)
 
   if (images.length === 0) return null
@@ -31,14 +32,16 @@ export function ImageStatusList({
   const detailImage = images.find((i) => i.file === detailFile) ?? null
 
   useEffect(() => {
-    if (!activeFile) return
-
+    if (!activeFile || !following) return
     const activeImage = images.find((i) => i.file === activeFile)
-
     if (!activeImage) return
-
     setDetailFile(activeImage.file)
-  }, [activeFile, images])
+  }, [activeFile, following, images])
+
+  // Re-enable following when captioning finishes
+  useEffect(() => {
+    if (!activeFile) setFollowing(true)
+  }, [activeFile])
 
   useEffect(() => {
     lastClickedRef.current = images[0]?.file ?? null
@@ -98,6 +101,19 @@ export function ImageStatusList({
             <span className="text-xs text-pink-400">
               {checkedFiles.size} selected
             </span>
+          )}
+          {activeFile && (
+            <button
+              type="button"
+              onClick={() => setFollowing((f) => !f)}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                following
+                  ? "border-pink-500/50 text-pink-400 hover:border-pink-400"
+                  : "border-gray-600 text-gray-500 hover:text-gray-300 hover:border-gray-500"
+              }`}
+            >
+              {following ? "Following" : "Not following"}
+            </button>
           )}
         </div>
         <div className="flex gap-4 text-xs text-gray-400">

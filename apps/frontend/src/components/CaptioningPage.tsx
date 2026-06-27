@@ -5,17 +5,23 @@ import {
   type CaptioningEvent,
   type CaptioningSettings,
   type CaptionMode,
-  clearPersistedSession,
   connectToSession,
   getCaptioningConfig,
   getCaptioningSession,
   type ImageFile,
-  readPersistedSession,
   scanDirectory,
   startCaptioningSession,
   stopCaptioningSession,
-  writePersistedSession,
 } from "../lib/captioningApi"
+import {
+  clearPersistedSession,
+  readPersistedSession,
+  readSettings,
+  readUserPrefs,
+  writePersistedSession,
+  writeSettings,
+  writeUserPrefs,
+} from "../lib/persistence"
 import { CaptioningForm } from "./CaptioningForm"
 import { ImageStatusList } from "./ImageStatusList"
 import { buildFeedLines, type FeedLine, ProgressFeed } from "./ProgressFeed"
@@ -23,10 +29,10 @@ import { SettingsSidebar } from "./SettingsSidebar"
 
 export function CaptioningPage() {
   const [dirPath, setDirPath] = useState(
-    () => readPersistedSession()?.dirPath ?? "",
+    () => readUserPrefs()?.dirPath ?? readPersistedSession()?.dirPath ?? "",
   )
   const [mode, setMode] = useState<CaptionMode>(
-    () => readPersistedSession()?.mode ?? "store",
+    () => readUserPrefs()?.mode ?? readPersistedSession()?.mode ?? "store",
   )
   const [scannedDirPath, setScannedDirPath] = useState("")
   const [images, setImages] = useState<ImageFile[]>([])
@@ -34,12 +40,15 @@ export function CaptioningPage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [config, setConfig] = useState<CaptioningConfig | null>(null)
-  const [settings, setSettings] = useState<CaptioningSettings>({
-    serviceHost: "",
-    apiKey: "",
-    modelName: "",
-    instruction: "",
-    maxResolution: 0,
+  const [settings, setSettings] = useState<CaptioningSettings>(() => {
+    const saved = readSettings()
+    return {
+      serviceHost: saved?.serviceHost ?? "",
+      apiKey: saved?.apiKey ?? "",
+      modelName: saved?.modelName ?? "",
+      instruction: saved?.instruction ?? "",
+      maxResolution: saved?.maxResolution ?? 0,
+    }
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeFile, setActiveFile] = useState<string | undefined>()
@@ -69,6 +78,20 @@ export function CaptioningPage() {
       .catch(() => {
         /* silently ignore if backend not ready */
       })
+  }, [])
+
+  useEffect(() => {
+    writeUserPrefs({ dirPath, mode })
+  }, [dirPath, mode])
+
+  useEffect(() => {
+    writeSettings(settings)
+  }, [settings])
+
+  // Auto-scan on mount if a directory was previously used
+  useEffect(() => {
+    if (dirPath) handleScan(dirPath)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // On mount: check if there's a persisted session from a previous page load
@@ -156,15 +179,6 @@ export function CaptioningPage() {
 
     eventsRef.current = [...eventsRef.current, event]
     setFeedLines(buildFeedLines(eventsRef.current))
-
-    // If stop was requested, signal backend after current image finishes
-    if (
-      stopPendingRef.current &&
-      (event.type === "done" || event.type === "error" || event.type === "skip")
-    ) {
-      const sid = sessionIdRef.current
-      if (sid) stopCaptioningSession(sid).catch(() => {})
-    }
   }, [])
 
   const handleSessionClose = useCallback(() => {
@@ -270,8 +284,8 @@ export function CaptioningPage() {
     setIsStopPending(true)
     stopPendingRef.current = true
     toast("Stopping… will finish the current image first", { icon: "⏳" })
-    // Backend will stop at the next image boundary once it receives the signal.
-    // The signal is sent in handleEvent after the current image's done/error/skip.
+    const sid = sessionIdRef.current
+    if (sid) stopCaptioningSession(sid).catch(() => {})
   }, [isStopPending])
 
   return (

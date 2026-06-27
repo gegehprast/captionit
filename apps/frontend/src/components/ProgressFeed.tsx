@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { readFeedPrefs, writeFeedPrefs, type CaptioningEvent } from "../lib/captioningApi"
+import type { CaptioningEvent } from "../lib/captioningApi"
+import { readFeedPrefs, writeFeedPrefs } from "../lib/persistence"
 
 export type FeedLine =
   | { kind: "info"; text: string }
@@ -150,8 +151,12 @@ export function ProgressFeed({
     }
   }
 
-  useEffect(() => { positionRef.current = position }, [position])
-  useEffect(() => { minimizedRef.current = minimized }, [minimized])
+  useEffect(() => {
+    positionRef.current = position
+  }, [position])
+  useEffect(() => {
+    minimizedRef.current = minimized
+  }, [minimized])
 
   // Auto-expand when streaming starts
   useEffect(() => {
@@ -200,7 +205,10 @@ export function ProgressFeed({
 
     const handleUp = () => {
       setIsDragging(false)
-      writeFeedPrefs({ ...positionRef.current, minimized: minimizedRef.current })
+      writeFeedPrefs({
+        ...positionRef.current,
+        minimized: minimizedRef.current,
+      })
     }
 
     window.addEventListener("pointermove", handleMove)
