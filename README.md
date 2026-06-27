@@ -3,6 +3,8 @@
 CaptionIt is a local-first image captioning app for building dataset captions quickly.
 It scans a folder of images, captions them using any OpenAI-compatible model backend (Ollama, Venice, OpenAI, etc.), and saves editable `.txt` files next to each image.
 
+![Screenshot](media/ss.jpg)
+
 ---
 
 ## Quick Start
@@ -35,6 +37,7 @@ bun install
 
 Then open `http://localhost:3001` in your browser.
 
+---
 
 ## Configuration
 
@@ -64,6 +67,7 @@ Save the file and restart the app. These become the default values pre-filled in
 
 > **💡 Using Ollama on your local machine?** If you haven't tinkered with its configuration yet, set `DEFAULT_SERVICE_HOST=http://localhost:11434/v1` and leave `DEFAULT_SERVICE_API_KEY` blank.
 
+---
 
 ## Updating
 
