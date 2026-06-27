@@ -89,7 +89,7 @@ This pulls the latest changes and rebuilds if anything changed. Your `.env` sett
 3. **Click Start.** The progress feed shows each image as it's processed.
 4. **Review & edit** — click any image in the list to read or edit its caption.
 
-The **Settings** panel (⚙ top right) lets you change the model, API key, instruction prompt, and max resolution for the current session. **Load server defaults** resets them to what's in your `.env.local`.
+The **Settings** panel (⚙ top right) lets you change the model, API key, instruction prompt, and max resolution for the current session. **Load server defaults** resets them to what's in your `.env`.
 
 ---
 
