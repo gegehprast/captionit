@@ -3,7 +3,7 @@
 CaptionIt is a local-first image captioning app for building dataset captions quickly.
 It scans a folder of images, captions them using any OpenAI-compatible model backend (Ollama, Venice, OpenAI, etc.), and saves editable `.txt` files next to each image.
 
-![Screenshot](media/ss.jpg)
+![Screenshot](media/start.jpg)
 
 ---
 
