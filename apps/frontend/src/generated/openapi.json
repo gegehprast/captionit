@@ -19,7 +19,7 @@
       "description": "Development server"
     },
     {
-      "url": "https://bunkit.dev",
+      "url": "http://localhost:3001",
       "description": "Production server"
     }
   ],
@@ -188,20 +188,20 @@
         }
       }
     },
-    "/auth/register": {
+    "/api/captioning/scan": {
       "post": {
-        "operationId": "register",
-        "summary": "Register new user",
-        "description": "Create a new user account with email and password",
+        "operationId": "scanDirectory",
+        "summary": "Scan directory",
+        "description": "Scan a local directory for images and return their caption status",
         "tags": [
-          "Authentication"
+          "Captioning"
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterBody"
+                "$ref": "#/components/schemas/ScanBody"
               }
             }
           }
@@ -212,7 +212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
+                  "$ref": "#/components/schemas/ScanResponse"
                 }
               }
             }
@@ -239,21 +239,6 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict - Resource already exists or state conflict",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Resource already exists",
-                  "code": "CONFLICT",
-                  "details": "A user with this email already exists"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/ConflictErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal Server Error - Unexpected server error",
             "content": {
@@ -272,97 +257,13 @@
         }
       }
     },
-    "/auth/login": {
-      "post": {
-        "operationId": "login",
-        "summary": "Login user",
-        "description": "Authenticate user with email and password",
-        "tags": [
-          "Authentication"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid input or validation failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Validation failed",
-                  "code": "BAD_REQUEST",
-                  "details": [
-                    {
-                      "path": [
-                        "email"
-                      ],
-                      "message": "Invalid email format"
-                    }
-                  ]
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Internal server error",
-                  "code": "INTERNAL_ERROR",
-                  "details": "Stack trace or error details for debugging"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/me": {
+    "/api/captioning/config": {
       "get": {
-        "operationId": "getCurrentUser",
-        "summary": "Get current user",
-        "description": "Get the authenticated user's profile (requires Bearer token)",
+        "operationId": "getCaptioningConfig",
+        "summary": "Get captioning config",
+        "description": "Returns the current service host, model, and instruction",
         "tags": [
-          "Authentication"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
+          "Captioning"
         ],
         "responses": {
           "200": {
@@ -370,21 +271,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing token hahah",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                  "$ref": "#/components/schemas/ConfigResponse"
                 }
               }
             }
@@ -407,288 +294,79 @@
         }
       }
     },
-    "/api/todos": {
-      "get": {
-        "operationId": "listTodos",
-        "summary": "List todos",
-        "description": "Lists all todo items for the authenticated user (requires Bearer token)",
-        "tags": [
-          "Todos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "completed",
-            "schema": {
-              "example": "true",
-              "description": "Filter todos by completion status",
-              "type": "string"
-            },
-            "description": "Filter todos by completion status"
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "example": "10",
-              "description": "Maximum number of todos to return",
-              "type": "string"
-            },
-            "description": "Maximum number of todos to return"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Todo"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid input or validation failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Validation failed",
-                  "code": "BAD_REQUEST",
-                  "details": [
-                    {
-                      "path": [
-                        "email"
-                      ],
-                      "message": "Invalid email format"
-                    }
-                  ]
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Internal server error",
-                  "code": "INTERNAL_ERROR",
-                  "details": "Stack trace or error details for debugging"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createTodo",
-        "summary": "Create a new todo",
-        "description": "Creates a new todo for the authenticated user (requires Bearer token)",
-        "tags": [
-          "Todos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTodoBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Todo"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid input or validation failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Validation failed",
-                  "code": "BAD_REQUEST",
-                  "details": [
-                    {
-                      "path": [
-                        "email"
-                      ],
-                      "message": "Invalid email format"
-                    }
-                  ]
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Internal server error",
-                  "code": "INTERNAL_ERROR",
-                  "details": "Stack trace or error details for debugging"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/todos/{id}": {
-      "get": {
-        "operationId": "getTodo",
-        "summary": "Get a todo by ID",
-        "description": "Retrieves a specific todo item by its ID (requires Bearer token)",
-        "tags": [
-          "Todos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Todo"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or failed",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message": "Internal server error",
-                  "code": "INTERNAL_ERROR",
-                  "details": "Stack trace or error details for debugging"
-                },
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
+    "/api/captioning/caption": {
       "put": {
-        "operationId": "updateTodo",
-        "summary": "Update a todo",
-        "description": "Updates a todo item by its ID (requires Bearer token)",
+        "operationId": "saveCaption",
+        "summary": "Save caption",
+        "description": "Overwrite the caption .txt file for an image",
         "tags": [
-          "Todos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+          "Captioning"
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTodoBody"
+                "$ref": "#/components/schemas/SaveCaptionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request - Invalid input or validation failed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Validation failed",
+                  "code": "BAD_REQUEST",
+                  "details": [
+                    {
+                      "path": [
+                        "email"
+                      ],
+                      "message": "Invalid email format"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Internal server error",
+                  "code": "INTERNAL_ERROR",
+                  "details": "Stack trace or error details for debugging"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/captioning/start": {
+      "post": {
+        "operationId": "startCaptioning",
+        "summary": "Start captioning session",
+        "description": "Validates the directory, scans for images, and starts a background captioning session. Returns a sessionId.",
+        "tags": [
+          "Captioning"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBody"
               }
             }
           }
@@ -699,7 +377,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Todo"
+                  "$ref": "#/components/schemas/StartResponse"
                 }
               }
             }
@@ -726,16 +404,39 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required or failed",
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
             "content": {
               "application/json": {
                 "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
+                  "message": "Internal server error",
+                  "code": "INTERNAL_ERROR",
+                  "details": "Stack trace or error details for debugging"
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/captioning/session": {
+      "get": {
+        "operationId": "getCaptioningSession",
+        "summary": "Get captioning session status",
+        "description": "Returns the status and progress of a captioning session",
+        "tags": [
+          "Captioning"
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionState"
                 }
               }
             }
@@ -756,63 +457,130 @@
             }
           }
         }
-      },
-      "delete": {
-        "operationId": "deleteTodo",
-        "summary": "Delete a todo",
-        "description": "Deletes a todo item by its ID (requires Bearer token)",
+      }
+    },
+    "/api/captioning/stop": {
+      "post": {
+        "operationId": "stopCaptioning",
+        "summary": "Stop captioning session",
+        "description": "Signals a running captioning session to stop after the current image",
         "tags": [
-          "Todos"
+          "Captioning"
         ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
-                }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopBody"
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or failed",
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request - Invalid input or validation failed",
             "content": {
               "application/json": {
                 "example": {
-                  "message": "Authentication required",
-                  "code": "UNAUTHORIZED"
+                  "message": "Validation failed",
+                  "code": "BAD_REQUEST",
+                  "details": [
+                    {
+                      "path": [
+                        "email"
+                      ],
+                      "message": "Invalid email format"
+                    }
+                  ]
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedErrorResponse"
+                  "$ref": "#/components/schemas/BadRequestErrorResponse"
                 }
               }
             }
           },
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Internal server error",
+                  "code": "INTERNAL_ERROR",
+                  "details": "Stack trace or error details for debugging"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redirect-internal": {
+      "get": {
+        "operationId": "redirectInternal",
+        "summary": "Internal Redirect",
+        "description": "Demonstrates type-safe internal redirect to another route in the application",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Internal server error",
+                  "code": "INTERNAL_ERROR",
+                  "details": "Stack trace or error details for debugging"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redirect-to-health": {
+      "get": {
+        "operationId": "redirectToHealth",
+        "summary": "Internal Redirect to Health",
+        "description": "Demonstrates type-safe internal redirect to another route in the application",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Internal server error",
+                  "code": "INTERNAL_ERROR",
+                  "details": "Stack trace or error details for debugging"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/redirect-external": {
+      "get": {
+        "operationId": "redirectExternal",
+        "summary": "External Redirect",
+        "description": "Demonstrates redirect to an external URL",
+        "tags": [
+          "System"
+        ],
+        "responses": {
           "500": {
             "description": "Internal Server Error - Unexpected server error",
             "content": {
@@ -834,103 +602,111 @@
   },
   "components": {
     "schemas": {
-      "RegisterBody": {
+      "ScanBody": {
         "type": "object",
         "properties": {
-          "email": {
+          "dirPath": {
             "type": "string",
-            "format": "email",
-            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "example": "john@doe.com"
+            "minLength": 1,
+            "example": "/home/user/dataset"
           },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 128,
-            "allOf": [
-              {
-                "pattern": "[a-z]"
-              },
-              {
-                "pattern": "[0-9]"
-              }
+          "filesFilter": {
+            "example": [
+              "photo01.jpg",
+              "photo02.png"
             ],
-            "description": "User password (min 12 characters, must include uppercase, lowercase, number, and special character)",
-            "example": "qwer1234"
-          },
-          "name": {
-            "example": "John Doe",
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
-          "email",
-          "password"
+          "dirPath"
         ],
-        "title": "Register Request",
-        "description": "User registration data"
+        "title": "Scan Request Body"
       },
-      "LoginBody": {
+      "SaveCaptionBody": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "example": "john@doe.com"
-          },
-          "password": {
-            "type": "string",
-            "example": "qwer1234"
-          }
-        },
-        "required": [
-          "email",
-          "password"
-        ],
-        "title": "Login Request",
-        "description": "User login credentials"
-      },
-      "CreateTodoBody": {
-        "type": "object",
-        "properties": {
-          "title": {
+          "imagePath": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100,
-            "example": "Buy groceries"
+            "example": "/home/user/dataset/photo01.jpg"
           },
-          "description": {
-            "example": "Milk, Bread, Eggs",
+          "caption": {
             "type": "string"
           }
         },
         "required": [
-          "title"
+          "imagePath",
+          "caption"
         ],
-        "title": "Create Todo Body",
-        "description": "Schema for creating a new todo item"
+        "title": "Save Caption Body"
       },
-      "UpdateTodoBody": {
+      "StartBody": {
         "type": "object",
         "properties": {
-          "title": {
-            "example": "Buy groceries",
+          "dirPath": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100
+            "example": "/home/user/dataset"
           },
-          "description": {
-            "example": "Milk, Bread, Eggs",
+          "mode": {
+            "default": "store",
+            "example": "store",
+            "type": "string",
+            "enum": [
+              "store",
+              "append",
+              "replace"
+            ]
+          },
+          "filesFilter": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "serviceHost": {
             "type": "string"
           },
-          "completed": {
-            "example": false,
-            "type": "boolean"
+          "apiKey": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "maxResolution": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "Client-generated session ID (UUID)"
           }
         },
-        "title": "Update Todo Body",
-        "description": "Schema for updating a todo item"
+        "required": [
+          "dirPath",
+          "sessionId"
+        ],
+        "title": "Start Captioning Body"
+      },
+      "StopBody": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "title": "Stop Request Body"
       },
       "HealthResponse": {
         "type": "object",
@@ -942,7 +718,7 @@
           },
           "timestamp": {
             "type": "string",
-            "example": "2026-02-01T14:07:42.545Z"
+            "example": "2026-06-27T04:12:52.346Z"
           },
           "uptime": {
             "type": "number",
@@ -958,58 +734,42 @@
         "title": "Health Check Response",
         "description": "Health check response indicating service status"
       },
-      "AuthResponse": {
+      "ScanResponse": {
         "type": "object",
         "properties": {
-          "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
-              "name": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "email",
-              "name"
-            ],
-            "additionalProperties": false
-          },
-          "token": {
+          "dirPath": {
             "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageFile"
+            }
+          },
+          "total": {
+            "type": "number"
           }
         },
         "required": [
-          "user",
-          "token"
+          "dirPath",
+          "images",
+          "total"
         ],
         "additionalProperties": false,
-        "title": "Auth Response",
-        "description": "Authentication response with user data and JWT token"
+        "title": "Scan Response"
       },
-      "UserResponse": {
+      "ImageFile": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
+          "file": {
+            "type": "string",
+            "example": "photo01.jpg"
           },
-          "email": {
-            "type": "string"
+          "hasCaption": {
+            "type": "boolean",
+            "example": true
           },
-          "name": {
+          "caption": {
             "anyOf": [
               {
                 "type": "string"
@@ -1017,73 +777,98 @@
               {
                 "type": "null"
               }
+            ],
+            "example": "A woman standing..."
+          },
+          "sizeMB": {
+            "type": "string",
+            "example": "1.24"
+          }
+        },
+        "required": [
+          "file",
+          "hasCaption",
+          "caption",
+          "sizeMB"
+        ],
+        "additionalProperties": false,
+        "title": "Image File"
+      },
+      "ConfigResponse": {
+        "type": "object",
+        "properties": {
+          "serviceHost": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "maxResolution": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "serviceHost",
+          "modelName",
+          "instruction",
+          "maxResolution"
+        ],
+        "additionalProperties": false,
+        "title": "Captioning Config"
+      },
+      "StartResponse": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "additionalProperties": false,
+        "title": "Start Captioning Response"
+      },
+      "SessionState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "done",
+              "stopped"
             ]
           },
-          "createdAt": {
-            "type": "string"
+          "total": {
+            "type": "number"
+          },
+          "captioned": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
           }
         },
         "required": [
           "id",
-          "email",
-          "name",
-          "createdAt"
+          "status",
+          "total",
+          "captioned",
+          "skipped",
+          "failed"
         ],
         "additionalProperties": false,
-        "title": "User Response",
-        "description": "User profile data"
-      },
-      "Todo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "1"
-          },
-          "userId": {
-            "type": "string",
-            "example": "user-123"
-          },
-          "title": {
-            "type": "string",
-            "example": "Buy groceries"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "example": "Milk, Bread, Eggs"
-          },
-          "completed": {
-            "type": "boolean",
-            "example": false
-          },
-          "createdAt": {
-            "type": "string",
-            "example": "2026-02-01T14:07:42.551Z"
-          },
-          "updatedAt": {
-            "type": "string",
-            "example": "2026-02-01T14:07:42.551Z"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "title",
-          "description",
-          "completed",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false,
-        "title": "Todo Item",
-        "description": "Schema representing a todo item"
+        "title": "Session State"
       },
       "BadRequestErrorResponse": {
         "type": "object",
@@ -1126,60 +911,6 @@
         ],
         "additionalProperties": false,
         "description": "Bad Request Error Response"
-      },
-      "UnauthorizedErrorResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "Error message"
-          },
-          "code": {
-            "type": "string",
-            "const": "UNAUTHORIZED"
-          },
-          "details": {
-            "description": "Additional error details"
-          }
-        },
-        "required": [
-          "message",
-          "code"
-        ],
-        "additionalProperties": false,
-        "description": "Unauthorized Error Response"
-      },
-      "ConflictErrorResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "Error message"
-          },
-          "code": {
-            "type": "string",
-            "const": "CONFLICT"
-          },
-          "details": {
-            "description": "Conflict details",
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": false
-              }
-            ]
-          }
-        },
-        "required": [
-          "message",
-          "code"
-        ],
-        "additionalProperties": false,
-        "description": "Conflict Error Response"
       },
       "InternalServerErrorResponse": {
         "type": "object",
@@ -1225,6 +956,28 @@
         ],
         "additionalProperties": false
       },
+      "UnauthorizedErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "code": {
+            "type": "string",
+            "const": "UNAUTHORIZED"
+          },
+          "details": {
+            "description": "Additional error details"
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false,
+        "description": "Unauthorized Error Response"
+      },
       "ForbiddenErrorResponse": {
         "type": "object",
         "properties": {
@@ -1268,6 +1021,38 @@
         ],
         "additionalProperties": false,
         "description": "Not Found Error Response"
+      },
+      "ConflictErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "code": {
+            "type": "string",
+            "const": "CONFLICT"
+          },
+          "details": {
+            "description": "Conflict details",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "code"
+        ],
+        "additionalProperties": false,
+        "description": "Conflict Error Response"
       }
     },
     "securitySchemes": {

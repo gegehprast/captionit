@@ -5,19 +5,40 @@ import {
   type CaptioningEvent,
   type CaptioningSettings,
   type CaptionMode,
+  connectToSession,
   getCaptioningConfig,
+  getCaptioningSession,
   type ImageFile,
   scanDirectory,
+  startCaptioningSession,
   stopCaptioningSession,
-  streamCaptioning,
 } from "../lib/captioningApi"
 import { CaptioningForm } from "./CaptioningForm"
 import { ImageStatusList } from "./ImageStatusList"
 import { buildFeedLines, type FeedLine, ProgressFeed } from "./ProgressFeed"
 import { SettingsSidebar } from "./SettingsSidebar"
 
+const SESSION_STORAGE_KEY = "captionit-session"
+
 export function CaptioningPage() {
-  const [dirPath, setDirPath] = useState("")
+  const [dirPath, setDirPath] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY)
+      if (!raw) return ""
+      return (JSON.parse(raw) as { dirPath?: string }).dirPath ?? ""
+    } catch {
+      return ""
+    }
+  })
+  const [mode, setMode] = useState<CaptionMode>(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY)
+      if (!raw) return "store"
+      return (JSON.parse(raw) as { mode?: CaptionMode }).mode ?? "store"
+    } catch {
+      return "store"
+    }
+  })
   const [scannedDirPath, setScannedDirPath] = useState("")
   const [images, setImages] = useState<ImageFile[]>([])
   const [isScanning, setIsScanning] = useState(false)
@@ -39,10 +60,10 @@ export function CaptioningPage() {
   const [feedOpen, setFeedOpen] = useState(false)
   const [isStopPending, setIsStopPending] = useState(false)
 
-  const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const eventsRef = useRef<CaptioningEvent[]>([])
   const stopPendingRef = useRef(false)
+  const disconnectRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     getCaptioningConfig()
@@ -59,6 +80,139 @@ export function CaptioningPage() {
       .catch(() => {
         /* silently ignore if backend not ready */
       })
+  }, [])
+
+  // On mount: check if there's a persisted session from a previous page load
+  useEffect(() => {
+    let cancelled = false
+    let localDisconnect: (() => void) | null = null
+
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY)
+    if (!raw) return
+
+    let parsed: { sessionId: string; dirPath: string }
+    try {
+      parsed = JSON.parse(raw) as { sessionId: string; dirPath: string }
+    } catch {
+      localStorage.removeItem(SESSION_STORAGE_KEY)
+      return
+    }
+
+    const { sessionId, dirPath: savedDirPath } = parsed
+
+    getCaptioningSession(sessionId)
+      .then(async (state) => {
+        if (cancelled) return
+
+        if (!state || state.status !== "running") {
+          localStorage.removeItem(SESSION_STORAGE_KEY)
+          return
+        }
+
+        // Session is still running — restore UI then reconnect
+        toast("Reconnecting to active captioning session…", { icon: "🔄" })
+        sessionIdRef.current = sessionId
+        setIsStreaming(true)
+        setFeedOpen(true)
+        eventsRef.current = []
+        setDirPath(savedDirPath)
+
+        // Populate the image list so replayed events can update statuses
+        try {
+          const result = await scanDirectory(savedDirPath)
+          if (!cancelled) {
+            setScannedDirPath(savedDirPath)
+            setImages(result.images)
+          }
+        } catch {
+          // proceed without image list
+        }
+
+        if (cancelled) return
+
+        localDisconnect = connectToSession({
+          sessionId,
+          onEvent: handleEvent,
+          onClose: handleSessionClose,
+          onError: (msg) => {
+            toast.error(`Stream error: ${msg}`)
+          },
+        })
+        disconnectRef.current = localDisconnect
+      })
+      .catch(() => {
+        if (!cancelled) localStorage.removeItem(SESSION_STORAGE_KEY)
+      })
+
+    return () => {
+      cancelled = true
+      localDisconnect?.()
+      localDisconnect = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleEvent = useCallback((event: CaptioningEvent) => {
+    if (event.type === "image") {
+      setActiveFile(event.file)
+      setLiveCaption("")
+    } else if (event.type === "token") {
+      setLiveCaption((prev) => (prev ?? "") + event.delta)
+    } else if (event.type === "done") {
+      setImages((prev) =>
+        prev.map((img) =>
+          img.file === event.file
+            ? { ...img, hasCaption: true, caption: event.caption }
+            : img,
+        ),
+      )
+      setActiveFile(undefined)
+      setLiveCaption(undefined)
+    } else if (event.type === "error") {
+      setActiveFile(undefined)
+      setLiveCaption(undefined)
+    }
+
+    eventsRef.current = [...eventsRef.current, event]
+    setFeedLines(buildFeedLines(eventsRef.current))
+
+    // If stop was requested, signal backend after current image finishes
+    if (
+      stopPendingRef.current &&
+      (event.type === "done" || event.type === "error" || event.type === "skip")
+    ) {
+      const sid = sessionIdRef.current
+      if (sid) stopCaptioningSession(sid).catch(() => {})
+    }
+  }, [])
+
+  const handleSessionClose = useCallback(() => {
+    const lastEvent = eventsRef.current.findLast((ev) => ev.type === "summary")
+
+    if (lastEvent?.type === "summary") {
+      const s = lastEvent
+      const stoppedByUser = stopPendingRef.current
+      const msg = `${stoppedByUser ? "Stopped — " : "Done — "}${s.captioned} captioned${
+        s.skipped > 0 ? `, ${s.skipped} skipped` : ""
+      }${s.failed > 0 ? `, ${s.failed} failed` : ""}`
+
+      if (stoppedByUser) {
+        toast(msg, { icon: "⏹" })
+      } else if (s.failed > 0) {
+        toast.error(msg, { duration: 6000 })
+      } else {
+        toast.success(msg, { duration: 5000 })
+      }
+    }
+
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+    sessionIdRef.current = null
+    disconnectRef.current = null
+    setIsStreaming(false)
+    setIsStopPending(false)
+    stopPendingRef.current = false
+    setActiveFile(undefined)
+    setLiveCaption(undefined)
   }, [])
 
   const handleScan = useCallback(async (path: string) => {
@@ -88,106 +242,54 @@ export function CaptioningPage() {
       setFeedOpen(true)
       eventsRef.current = []
 
-      const ac = new AbortController()
-      abortRef.current = ac
-      const sessionId = crypto.randomUUID()
-      sessionIdRef.current = sessionId
-
-      // Re-scan to get fresh status before streaming (always full dir, not filtered)
       try {
-        const result = await scanDirectory(path)
-        setScannedDirPath(path)
-        setImages(result.images)
-      } catch {
-        // proceed anyway
-      }
-
-      try {
-        await streamCaptioning({
-          dirPath: path,
+        const sessionId = await startCaptioningSession(
+          path,
           mode,
-          filesFilter,
           settings,
-          sessionId,
-          signal: ac.signal,
-          onEvent(event) {
-            // Track active file and live caption
-            if (event.type === "image") {
-              setActiveFile(event.file)
-              setLiveCaption("")
-            } else if (event.type === "token") {
-              setLiveCaption((prev) => (prev ?? "") + event.delta)
-            } else if (event.type === "done") {
-              setImages((prev) =>
-                prev.map((img) =>
-                  img.file === event.file
-                    ? { ...img, hasCaption: true, caption: event.caption }
-                    : img,
-                ),
-              )
-              setActiveFile(undefined)
-              setLiveCaption(undefined)
-            } else if (event.type === "error") {
-              setActiveFile(undefined)
-              setLiveCaption(undefined)
-            }
-            // Accumulate for feed
-            eventsRef.current = [...eventsRef.current, event]
-            setFeedLines(buildFeedLines(eventsRef.current))
+          filesFilter,
+        )
+        sessionIdRef.current = sessionId
+        localStorage.setItem(
+          SESSION_STORAGE_KEY,
+          JSON.stringify({ sessionId, dirPath: path, mode }),
+        )
 
-            if (
-              stopPendingRef.current &&
-              (event.type === "done" ||
-                event.type === "error" ||
-                event.type === "skip")
-            ) {
-              stopCaptioningSession(sessionId).catch(() => {})
-              abortRef.current?.abort()
-            }
+        // Rescan to get fresh image list before events start arriving
+        try {
+          const result = await scanDirectory(path)
+          setScannedDirPath(path)
+          setImages(result.images)
+        } catch {
+          // proceed anyway
+        }
+
+        disconnectRef.current = connectToSession({
+          sessionId,
+          onEvent: handleEvent,
+          onClose: handleSessionClose,
+          onError: (msg) => {
+            // EventSource reconnects automatically on most errors.
+            // Only fatal errors (CLOSED state) reach here.
+            toast.error(`Stream error: ${msg}`, { duration: 6000 })
           },
         })
       } catch (e) {
-        if ((e as { name?: string }).name === "AbortError") {
-          toast("Stopped after the current image finished", { icon: "⏹" })
-        } else {
-          toast.error(
-            `Stream interrupted: ${e instanceof Error ? e.message : String(e)}`,
-            { duration: 6000 },
-          )
-        }
-      } finally {
-        sessionIdRef.current = null
-        const lastEvent = eventsRef.current.findLast(
-          (ev) => ev.type === "summary",
-        )
-        if (lastEvent?.type === "summary") {
-          const s = lastEvent
-          const msg = `Done — ${s.captioned} captioned${
-            s.skipped > 0 ? `, ${s.skipped} skipped` : ""
-          }${s.failed > 0 ? `, ${s.failed} failed` : ""}`
-          if (s.failed > 0) {
-            toast.error(msg, { duration: 6000 })
-          } else {
-            toast.success(msg, { duration: 5000 })
-          }
-        }
+        setError(e instanceof Error ? e.message : String(e))
         setIsStreaming(false)
-        setIsStopPending(false)
-        stopPendingRef.current = false
-        setActiveFile(undefined)
-        setLiveCaption(undefined)
+        localStorage.removeItem(SESSION_STORAGE_KEY)
       }
     },
-    [settings],
+    [settings, handleEvent, handleSessionClose],
   )
 
   const handleStop = useCallback(() => {
     if (isStopPending) return
     setIsStopPending(true)
     stopPendingRef.current = true
-    toast("Stopping... will stop after the current image finishes", {
-      icon: "⏳",
-    })
+    toast("Stopping… will finish the current image first", { icon: "⏳" })
+    // Backend will stop at the next image boundary once it receives the signal.
+    // The signal is sent in handleEvent after the current image's done/error/skip.
   }, [isStopPending])
 
   return (
@@ -228,6 +330,8 @@ export function CaptioningPage() {
         <CaptioningForm
           dirPath={dirPath}
           onDirPathChange={setDirPath}
+          mode={mode}
+          onModeChange={setMode}
           onScan={handleScan}
           onStart={handleStart}
           onStop={handleStop}

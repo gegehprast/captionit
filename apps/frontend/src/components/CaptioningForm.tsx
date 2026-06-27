@@ -1,4 +1,3 @@
-import { useState } from "react"
 import type { CaptionMode } from "../lib/captioningApi"
 import { DirectoryBrowser } from "./DirectoryBrowser"
 
@@ -12,6 +11,8 @@ interface CaptioningFormProps {
   isStreaming: boolean
   dirPath: string
   onDirPathChange: (v: string) => void
+  mode: CaptionMode
+  onModeChange: (mode: CaptionMode) => void
   selectedFiles?: string[]
 }
 
@@ -25,9 +26,10 @@ export function CaptioningForm({
   isStreaming,
   dirPath,
   onDirPathChange,
+  mode,
+  onModeChange,
   selectedFiles,
 }: CaptioningFormProps) {
-  const [mode, setMode] = useState<CaptionMode>("store")
 
   const busy = isScanning || isStreaming
 
@@ -47,7 +49,7 @@ export function CaptioningForm({
           <select
             id="mode"
             value={mode}
-            onChange={(e) => setMode(e.target.value as CaptionMode)}
+            onChange={(e) => onModeChange(e.target.value as CaptionMode)}
             disabled={busy}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500 disabled:opacity-50 text-sm"
           >

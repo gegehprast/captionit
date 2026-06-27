@@ -1,19 +1,21 @@
-import { basename, extname, join } from "node:path"
+import { extname } from "node:path"
 import { createRoute } from "@bunkit/server"
 import { z } from "zod"
 import {
-  type CaptionMode,
   IMAGE_EXTENSIONS,
   MIME_MAP,
   scanDirectory,
-  streamCaption,
   validatePath,
   writeCaptionFile,
 } from "@/captioning/captioning.service"
+import {
+  getSessionState,
+  startSession,
+  stopSession,
+  subscribeToSession,
+} from "@/captioning/captioning.session"
 import { captioningConfig } from "@/config/captioning"
 import { logger } from "@/core/logger"
-
-const activeSessions = new Map<string, AbortController>()
 
 // --- Shared Schemas ---
 
@@ -124,7 +126,6 @@ createRoute("GET", "/api/captioning/browse")
       }
     }
 
-    // Build breadcrumb segments from the resolved path
     const segments = resolvedPath === "/" ? [""] : resolvedPath.split("/")
     const breadcrumbs = segments.map((seg, i) => ({
       name: seg === "" ? "/" : seg,
@@ -196,7 +197,6 @@ createRoute("GET", "/api/captioning/config")
 /**
  * GET /api/captioning/image?path=<absolute-path>
  * Serve a local image file by absolute path for display in the UI.
- * Only files with recognised image extensions are served.
  */
 createRoute("GET", "/api/captioning/image")
   .openapi({
@@ -213,10 +213,7 @@ createRoute("GET", "/api/captioning/image")
     if (!filePath) {
       return new Response(
         JSON.stringify({ message: "Missing path query parameter" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+        { status: 400, headers: { "Content-Type": "application/json" } },
       )
     }
 
@@ -224,10 +221,7 @@ createRoute("GET", "/api/captioning/image")
     if (pathResult.isErr()) {
       return new Response(
         JSON.stringify({ message: pathResult.error.message }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+        { status: 400, headers: { "Content-Type": "application/json" } },
       )
     }
 
@@ -296,7 +290,7 @@ createRoute("PUT", "/api/captioning/caption")
       })
     }
 
-    const txtPath = join(`${imgPath.slice(0, imgPath.length - ext.length)}.txt`)
+    const txtPath = `${imgPath.slice(0, imgPath.length - ext.length)}.txt`
     const result = await writeCaptionFile(txtPath, body.caption, "replace")
     if (result.isErr()) {
       return new Response(JSON.stringify({ message: result.error.message }), {
@@ -309,42 +303,16 @@ createRoute("PUT", "/api/captioning/caption")
   })
 
 /**
- * POST /api/captioning/stop
- * Signal a running session to stop after the current image finishes.
+ * POST /api/captioning/start
+ * Validate, scan, and start a captioning session in the background.
+ * Returns a sessionId the client uses to subscribe to events.
  */
-createRoute("POST", "/api/captioning/stop")
+createRoute("POST", "/api/captioning/start")
   .openapi({
-    operationId: "stopCaptioning",
-    summary: "Stop captioning session",
+    operationId: "startCaptioning",
+    summary: "Start captioning session",
     description:
-      "Signals a running captioning session to stop after the current image",
-    tags: ["Captioning"],
-  })
-  .body(
-    z
-      .object({ sessionId: z.string() })
-      .meta({ id: "StopBody", title: "Stop Request Body" }),
-  )
-  .handler(({ body }) => {
-    const ac = activeSessions.get(body.sessionId)
-    if (ac) ac.abort()
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { "Content-Type": "application/json" },
-    })
-  })
-
-/**
- * POST /api/captioning/stream
- * SSE endpoint — captions images in a directory and streams progress events.
- *
- * Body: { dirPath, mode, filesFilter? }
- * Events: start | image | token | done | skip | error | summary
- */
-createRoute("POST", "/api/captioning/stream")
-  .openapi({
-    operationId: "streamCaptioning",
-    summary: "Stream captioning",
-    description: "Caption images in a directory with real-time SSE progress",
+      "Validates the directory, scans for images, and starts a background captioning session. Returns a sessionId.",
     tags: ["Captioning"],
   })
   .body(
@@ -361,11 +329,18 @@ createRoute("POST", "/api/captioning/stream")
         modelName: z.string().optional(),
         instruction: z.string().optional(),
         maxResolution: z.number().int().positive().optional(),
-        sessionId: z.string().optional(),
+        sessionId: z
+          .string()
+          .meta({ description: "Client-generated session ID (UUID)" }),
       })
-      .meta({ id: "StreamBody", title: "Stream Request Body" }),
+      .meta({ id: "StartBody", title: "Start Captioning Body" }),
   )
-  .handler(async ({ body }) => {
+  .response(
+    z
+      .object({ sessionId: z.string() })
+      .meta({ id: "StartResponse", title: "Start Captioning Response" }),
+  )
+  .handler(async ({ body, res }) => {
     const {
       dirPath,
       mode,
@@ -378,17 +353,16 @@ createRoute("POST", "/api/captioning/stream")
       sessionId,
     } = body as {
       dirPath: string
-      mode: CaptionMode
+      mode: "store" | "append" | "replace"
       filesFilter?: string[]
       serviceHost?: string
       apiKey?: string
       modelName?: string
       instruction?: string
       maxResolution?: number
-      sessionId?: string
+      sessionId: string
     }
 
-    // Validate path upfront
     const pathResult = validatePath(dirPath)
     if (pathResult.isErr()) {
       return new Response(
@@ -412,143 +386,147 @@ createRoute("POST", "/api/captioning/stream")
       )
     }
 
-    const images = scanResult.value
-    const resolvedApiKey =
-      (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key"
-    const resolvedBaseURL = serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST
+    startSession({
+      sessionId,
+      images: scanResult.value,
+      resolvedDir: pathResult.value,
+      mode,
+      resolvedBaseURL: serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST,
+      resolvedApiKey:
+        (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key",
+      modelName: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
+      instruction: instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
+      maxResolution: maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
+    })
 
-    const sessionAc = new AbortController()
-    if (sessionId) activeSessions.set(sessionId, sessionAc)
+    logger.info("Captioning session created", { sessionId })
+    return res.ok({ sessionId })
+  })
 
-    function sseEvent(data: object): string {
-      return `data: ${JSON.stringify(data)}\n\n`
+/**
+ * GET /api/captioning/session?sessionId=<id>
+ * Return the current status of a captioning session.
+ * Used by the frontend to check if a persisted session is still active on page reload.
+ */
+createRoute("GET", "/api/captioning/session")
+  .openapi({
+    operationId: "getCaptioningSession",
+    summary: "Get captioning session status",
+    description: "Returns the status and progress of a captioning session",
+    tags: ["Captioning"],
+  })
+  .response(
+    z
+      .object({
+        id: z.string(),
+        status: z.enum(["running", "done", "stopped"]),
+        total: z.number(),
+        captioned: z.number(),
+        skipped: z.number(),
+        failed: z.number(),
+      })
+      .meta({ id: "SessionState", title: "Session State" }),
+  )
+  .handler(({ req }) => {
+    const url = new URL(req.url)
+    const sessionId = url.searchParams.get("sessionId")
+
+    if (!sessionId) {
+      return new Response(
+        JSON.stringify({ message: "Missing sessionId query parameter" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      )
     }
 
+    const state = getSessionState(sessionId)
+    if (!state) {
+      return new Response(JSON.stringify({ message: "Session not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    return new Response(JSON.stringify(state), {
+      headers: { "Content-Type": "application/json" },
+    })
+  })
+
+/**
+ * GET /api/captioning/events?sessionId=<id>
+ * SSE endpoint — subscribe to a captioning session's event stream.
+ * Supports reconnection via the Last-Event-ID header (replays missed events).
+ *
+ * Events: start | image | token | done | skip | error | summary
+ */
+createRoute("GET", "/api/captioning/events")
+  .openapi({
+    operationId: "captioningEvents",
+    summary: "Subscribe to captioning events",
+    description:
+      "SSE stream for a captioning session. Supports Last-Event-ID for seamless reconnect.",
+    tags: ["Captioning"],
+  })
+  .excludeFromDocs()
+  .handler(({ req }) => {
+    const url = new URL(req.url)
+    const sessionId = url.searchParams.get("sessionId")
+
+    if (!sessionId) {
+      return new Response(
+        JSON.stringify({ message: "Missing sessionId query parameter" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
+    const lastEventId = parseInt(req.headers.get("Last-Event-ID") ?? "0", 10)
+
+    const encoder = new TextEncoder()
+
     const stream = new ReadableStream({
-      async start(controller) {
-        const enqueue = (data: object) => {
+      start(controller) {
+        const enqueue = (id: number, data: object) => {
           try {
-            controller.enqueue(new TextEncoder().encode(sseEvent(data)))
+            controller.enqueue(
+              encoder.encode(`id: ${id}\ndata: ${JSON.stringify(data)}\n\n`),
+            )
           } catch {
             // client disconnected
           }
         }
 
-        let captioned = 0
-        let skipped = 0
-        let failed = 0
-
-        try {
-          enqueue({ type: "start", total: images.length })
-
-          logger.info("Captioning session started", {
-            total: images.length,
-            mode,
-            model: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
-            baseURL: resolvedBaseURL,
-            maxResolution:
-              maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
-          })
-
-          for (const image of images) {
-            if (sessionAc.signal.aborted) break
-
-            const resolvedDir = pathResult.value
-            const imagePath = join(resolvedDir, image.file)
-            const txtPath = join(
-              resolvedDir,
-              `${basename(image.file, extname(image.file))}.txt`,
-            )
-
-            // In "store" mode, skip already-captioned images
-            if (mode === "store" && image.hasCaption) {
-              logger.debug("Skipping already-captioned image", {
-                file: image.file,
-              })
-              enqueue({ type: "skip", file: image.file })
-              skipped++
-              continue
-            }
-
-            enqueue({
-              type: "image",
-              file: image.file,
-              index: images.indexOf(image) + 1,
-              sizeMB: image.sizeMB,
-            })
-
-            logger.info("Captioning image", {
-              file: image.file,
-              index: images.indexOf(image) + 1,
-              total: images.length,
-              sizeMB: image.sizeMB,
-            })
-
+        const unsubscribe = subscribeToSession(
+          sessionId,
+          lastEventId,
+          (event) => enqueue(event.id, event.data),
+          () => {
             try {
-              let caption = ""
-              for await (const token of streamCaption(
-                imagePath,
-                resolvedBaseURL,
-                resolvedApiKey,
-                modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
-                instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
-                maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,
-              )) {
-                caption += token
-                enqueue({ type: "token", delta: token })
-              }
-
-              caption = caption.trim()
-              if (!caption) {
-                enqueue({
-                  type: "error",
-                  file: image.file,
-                  message: "Empty response from API",
-                })
-                failed++
-                continue
-              }
-
-              const writeResult = await writeCaptionFile(txtPath, caption, mode)
-              if (writeResult.isErr()) {
-                enqueue({
-                  type: "error",
-                  file: image.file,
-                  message: writeResult.error.message,
-                })
-                failed++
-                continue
-              }
-
-              enqueue({ type: "done", file: image.file, caption })
-              logger.info("Caption saved", {
-                file: image.file,
-                captionLength: caption.length,
-              })
-              captioned++
-            } catch (e) {
-              const message = e instanceof Error ? e.message : String(e)
-              logger.error("Captioning failed", { file: image.file, error: e })
-              enqueue({ type: "error", file: image.file, message })
-              failed++
+              controller.close()
+            } catch {
+              // already closed
             }
-          }
-        } catch (e) {
-          logger.error("Unexpected error in captioning stream", { error: e })
-        } finally {
-          if (sessionId) activeSessions.delete(sessionId)
-          enqueue({ type: "summary", captioned, skipped, failed })
-          logger.info("Captioning session complete", {
-            captioned,
-            skipped,
-            failed,
-          })
+          },
+        )
+
+        if (!unsubscribe) {
+          // Session not found — send an error event so client knows
+          enqueue(0, { type: "error", file: "", message: "Session not found" })
           try {
             controller.close()
           } catch {
             // already closed
           }
+          return
         }
+
+        // Clean up subscriber when client disconnects
+        req.signal.addEventListener("abort", () => {
+          unsubscribe()
+          try {
+            controller.close()
+          } catch {
+            // already closed
+          }
+        })
       },
     })
 
@@ -560,4 +538,26 @@ createRoute("POST", "/api/captioning/stream")
         "X-Accel-Buffering": "no",
       },
     })
+  })
+
+/**
+ * POST /api/captioning/stop
+ * Signal a running session to stop after the current image finishes.
+ */
+createRoute("POST", "/api/captioning/stop")
+  .openapi({
+    operationId: "stopCaptioning",
+    summary: "Stop captioning session",
+    description:
+      "Signals a running captioning session to stop after the current image",
+    tags: ["Captioning"],
+  })
+  .body(
+    z
+      .object({ sessionId: z.string() })
+      .meta({ id: "StopBody", title: "Stop Request Body" }),
+  )
+  .handler(({ body, res }) => {
+    stopSession(body.sessionId)
+    return res.ok({ ok: true })
   })

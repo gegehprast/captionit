@@ -104,7 +104,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/register": {
+    "/api/captioning/scan": {
         parameters: {
             query?: never;
             header?: never;
@@ -114,17 +114,57 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Register new user
-         * @description Create a new user account with email and password
+         * Scan directory
+         * @description Scan a local directory for images and return their caption status
          */
-        post: operations["register"];
+        post: operations["scanDirectory"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/login": {
+    "/api/captioning/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get captioning config
+         * @description Returns the current service host, model, and instruction
+         */
+        get: operations["getCaptioningConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/captioning/caption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save caption
+         * @description Overwrite the caption .txt file for an image
+         */
+        put: operations["saveCaption"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/captioning/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -134,17 +174,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Login user
-         * @description Authenticate user with email and password
+         * Start captioning session
+         * @description Validates the directory, scans for images, and starts a background captioning session. Returns a sessionId.
          */
-        post: operations["login"];
+        post: operations["startCaptioning"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/me": {
+    "/api/captioning/session": {
         parameters: {
             query?: never;
             header?: never;
@@ -152,10 +192,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get current user
-         * @description Get the authenticated user's profile (requires Bearer token)
+         * Get captioning session status
+         * @description Returns the status and progress of a captioning session
          */
-        get: operations["getCurrentUser"];
+        get: operations["getCaptioningSession"];
         put?: never;
         post?: never;
         delete?: never;
@@ -164,31 +204,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/todos": {
+    "/api/captioning/stop": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * List todos
-         * @description Lists all todo items for the authenticated user (requires Bearer token)
-         */
-        get: operations["listTodos"];
+        get?: never;
         put?: never;
         /**
-         * Create a new todo
-         * @description Creates a new todo for the authenticated user (requires Bearer token)
+         * Stop captioning session
+         * @description Signals a running captioning session to stop after the current image
          */
-        post: operations["createTodo"];
+        post: operations["stopCaptioning"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/todos/{id}": {
+    "/api/redirect-internal": {
         parameters: {
             query?: never;
             header?: never;
@@ -196,21 +232,53 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a todo by ID
-         * @description Retrieves a specific todo item by its ID (requires Bearer token)
+         * Internal Redirect
+         * @description Demonstrates type-safe internal redirect to another route in the application
          */
-        get: operations["getTodo"];
-        /**
-         * Update a todo
-         * @description Updates a todo item by its ID (requires Bearer token)
-         */
-        put: operations["updateTodo"];
+        get: operations["redirectInternal"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/redirect-to-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /**
-         * Delete a todo
-         * @description Deletes a todo item by its ID (requires Bearer token)
+         * Internal Redirect to Health
+         * @description Demonstrates type-safe internal redirect to another route in the application
          */
-        delete: operations["deleteTodo"];
+        get: operations["redirectToHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/redirect-external": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * External Redirect
+         * @description Demonstrates redirect to an external URL
+         */
+        get: operations["redirectExternal"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -220,58 +288,46 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * Register Request
-         * @description User registration data
-         */
-        RegisterBody: {
+        /** Scan Request Body */
+        ScanBody: {
+            /** @example /home/user/dataset */
+            dirPath: string;
             /**
-             * Format: email
-             * @example john@doe.com
+             * @example [
+             *       "photo01.jpg",
+             *       "photo02.png"
+             *     ]
              */
-            email: string;
+            filesFilter?: string[];
+        };
+        /** Save Caption Body */
+        SaveCaptionBody: {
+            /** @example /home/user/dataset/photo01.jpg */
+            imagePath: string;
+            caption: string;
+        };
+        /** Start Captioning Body */
+        StartBody: {
+            /** @example /home/user/dataset */
+            dirPath: string;
             /**
-             * @description User password (min 12 characters, must include uppercase, lowercase, number, and special character)
-             * @example qwer1234
+             * @default store
+             * @example store
+             * @enum {string}
              */
-            password: string & (unknown & unknown);
-            /** @example John Doe */
-            name?: string;
+            mode: "store" | "append" | "replace";
+            filesFilter?: string[];
+            serviceHost?: string;
+            apiKey?: string;
+            modelName?: string;
+            instruction?: string;
+            maxResolution?: number;
+            /** @description Client-generated session ID (UUID) */
+            sessionId: string;
         };
-        /**
-         * Login Request
-         * @description User login credentials
-         */
-        LoginBody: {
-            /**
-             * Format: email
-             * @example john@doe.com
-             */
-            email: string;
-            /** @example qwer1234 */
-            password: string;
-        };
-        /**
-         * Create Todo Body
-         * @description Schema for creating a new todo item
-         */
-        CreateTodoBody: {
-            /** @example Buy groceries */
-            title: string;
-            /** @example Milk, Bread, Eggs */
-            description?: string;
-        };
-        /**
-         * Update Todo Body
-         * @description Schema for updating a todo item
-         */
-        UpdateTodoBody: {
-            /** @example Buy groceries */
-            title?: string;
-            /** @example Milk, Bread, Eggs */
-            description?: string;
-            /** @example false */
-            completed?: boolean;
+        /** Stop Request Body */
+        StopBody: {
+            sessionId: string;
         };
         /**
          * Health Check Response
@@ -283,52 +339,48 @@ export interface components {
              * @constant
              */
             status: "ok";
-            /** @example 2026-02-01T14:07:42.545Z */
+            /** @example 2026-06-27T04:12:52.346Z */
             timestamp: string;
             /** @example 123.456 */
             uptime: number;
         };
-        /**
-         * Auth Response
-         * @description Authentication response with user data and JWT token
-         */
-        AuthResponse: {
-            user: {
-                id: string;
-                email: string;
-                name: string | null;
-            };
-            token: string;
+        /** Scan Response */
+        ScanResponse: {
+            dirPath: string;
+            images: components["schemas"]["ImageFile"][];
+            total: number;
         };
-        /**
-         * User Response
-         * @description User profile data
-         */
-        UserResponse: {
-            id: string;
-            email: string;
-            name: string | null;
-            createdAt: string;
+        /** Image File */
+        ImageFile: {
+            /** @example photo01.jpg */
+            file: string;
+            /** @example true */
+            hasCaption: boolean;
+            /** @example A woman standing... */
+            caption: string | null;
+            /** @example 1.24 */
+            sizeMB: string;
         };
-        /**
-         * Todo Item
-         * @description Schema representing a todo item
-         */
-        Todo: {
-            /** @example 1 */
+        /** Captioning Config */
+        ConfigResponse: {
+            serviceHost: string;
+            modelName: string;
+            instruction: string;
+            maxResolution: number;
+        };
+        /** Start Captioning Response */
+        StartResponse: {
+            sessionId: string;
+        };
+        /** Session State */
+        SessionState: {
             id: string;
-            /** @example user-123 */
-            userId: string;
-            /** @example Buy groceries */
-            title: string;
-            /** @example Milk, Bread, Eggs */
-            description: string | null;
-            /** @example false */
-            completed: boolean;
-            /** @example 2026-02-01T14:07:42.551Z */
-            createdAt: string;
-            /** @example 2026-02-01T14:07:42.551Z */
-            updatedAt: string;
+            /** @enum {string} */
+            status: "running" | "done" | "stopped";
+            total: number;
+            captioned: number;
+            skipped: number;
+            failed: number;
         };
         /** @description Bad Request Error Response */
         BadRequestErrorResponse: {
@@ -344,24 +396,6 @@ export interface components {
                 message: string;
             }[];
         };
-        /** @description Unauthorized Error Response */
-        UnauthorizedErrorResponse: {
-            /** @description Error message */
-            message: string;
-            /** @constant */
-            code: "UNAUTHORIZED";
-            /** @description Additional error details */
-            details?: unknown;
-        };
-        /** @description Conflict Error Response */
-        ConflictErrorResponse: {
-            /** @description Error message */
-            message: string;
-            /** @constant */
-            code: "CONFLICT";
-            /** @description Conflict details */
-            details?: string | Record<string, never>;
-        };
         /** @description Internal Server Error Response */
         InternalServerErrorResponse: {
             /** @description Error message */
@@ -376,6 +410,15 @@ export interface components {
             message: string;
             /** @description Error code */
             code: string;
+            /** @description Additional error details */
+            details?: unknown;
+        };
+        /** @description Unauthorized Error Response */
+        UnauthorizedErrorResponse: {
+            /** @description Error message */
+            message: string;
+            /** @constant */
+            code: "UNAUTHORIZED";
             /** @description Additional error details */
             details?: unknown;
         };
@@ -396,6 +439,15 @@ export interface components {
             code: "NOT_FOUND";
             /** @description Additional error details */
             details?: unknown;
+        };
+        /** @description Conflict Error Response */
+        ConflictErrorResponse: {
+            /** @description Error message */
+            message: string;
+            /** @constant */
+            code: "CONFLICT";
+            /** @description Conflict details */
+            details?: string | Record<string, never>;
         };
     };
     responses: never;
@@ -561,7 +613,7 @@ export interface operations {
             };
         };
     };
-    register: {
+    scanDirectory: {
         parameters: {
             query?: never;
             header?: never;
@@ -570,7 +622,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterBody"];
+                "application/json": components["schemas"]["ScanBody"];
             };
         };
         responses: {
@@ -580,7 +632,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthResponse"];
+                    "application/json": components["schemas"]["ScanResponse"];
                 };
             };
             /** @description Bad Request - Invalid input or validation failed */
@@ -606,22 +658,6 @@ export interface operations {
                     "application/json": components["schemas"]["BadRequestErrorResponse"];
                 };
             };
-            /** @description Conflict - Resource already exists or state conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Resource already exists",
-                     *       "code": "CONFLICT",
-                     *       "details": "A user with this email already exists"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ConflictErrorResponse"];
-                };
-            };
             /** @description Internal Server Error - Unexpected server error */
             500: {
                 headers: {
@@ -640,79 +676,7 @@ export interface operations {
             };
         };
     };
-    login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginBody"];
-            };
-        };
-        responses: {
-            /** @description 200 response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResponse"];
-                };
-            };
-            /** @description Bad Request - Invalid input or validation failed */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Validation failed",
-                     *       "code": "BAD_REQUEST",
-                     *       "details": [
-                     *         {
-                     *           "path": [
-                     *             "email"
-                     *           ],
-                     *           "message": "Invalid email format"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["BadRequestErrorResponse"];
-                };
-            };
-            /** @description Invalid credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error - Unexpected server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Internal server error",
-                     *       "code": "INTERNAL_ERROR",
-                     *       "details": "Stack trace or error details for debugging"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["InternalServerErrorResponse"];
-                };
-            };
-        };
-    };
-    getCurrentUser: {
+    getCaptioningConfig: {
         parameters: {
             query?: never;
             header?: never;
@@ -727,22 +691,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            /** @description Unauthorized - Invalid or missing token hahah */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
+                    "application/json": components["schemas"]["ConfigResponse"];
                 };
             };
             /** @description Internal Server Error - Unexpected server error */
@@ -763,14 +712,126 @@ export interface operations {
             };
         };
     };
-    listTodos: {
+    saveCaption: {
         parameters: {
-            query?: {
-                /** @description Filter todos by completion status */
-                completed?: string;
-                /** @description Maximum number of todos to return */
-                limit?: string;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCaptionBody"];
             };
+        };
+        responses: {
+            /** @description Bad Request - Invalid input or validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message": "Validation failed",
+                     *       "code": "BAD_REQUEST",
+                     *       "details": [
+                     *         {
+                     *           "path": [
+                     *             "email"
+                     *           ],
+                     *           "message": "Invalid email format"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error - Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message": "Internal server error",
+                     *       "code": "INTERNAL_ERROR",
+                     *       "details": "Stack trace or error details for debugging"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    startCaptioning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartBody"];
+            };
+        };
+        responses: {
+            /** @description 200 response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input or validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message": "Validation failed",
+                     *       "code": "BAD_REQUEST",
+                     *       "details": [
+                     *         {
+                     *           "path": [
+                     *             "email"
+                     *           ],
+                     *           "message": "Invalid email format"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error - Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message": "Internal server error",
+                     *       "code": "INTERNAL_ERROR",
+                     *       "details": "Stack trace or error details for debugging"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
+                };
+            };
+        };
+    };
+    getCaptioningSession: {
+        parameters: {
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -783,45 +844,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Todo"][];
-                };
-            };
-            /** @description Bad Request - Invalid input or validation failed */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Validation failed",
-                     *       "code": "BAD_REQUEST",
-                     *       "details": [
-                     *         {
-                     *           "path": [
-                     *             "email"
-                     *           ],
-                     *           "message": "Invalid email format"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["BadRequestErrorResponse"];
-                };
-            };
-            /** @description Unauthorized - Authentication required or failed */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
+                    "application/json": components["schemas"]["SessionState"];
                 };
             };
             /** @description Internal Server Error - Unexpected server error */
@@ -842,7 +865,7 @@ export interface operations {
             };
         };
     };
-    createTodo: {
+    stopCaptioning: {
         parameters: {
             query?: never;
             header?: never;
@@ -851,19 +874,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateTodoBody"];
+                "application/json": components["schemas"]["StopBody"];
             };
         };
         responses: {
-            /** @description 200 response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Todo"];
-                };
-            };
             /** @description Bad Request - Invalid input or validation failed */
             400: {
                 headers: {
@@ -887,21 +901,6 @@ export interface operations {
                     "application/json": components["schemas"]["BadRequestErrorResponse"];
                 };
             };
-            /** @description Unauthorized - Authentication required or failed */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
-                };
-            };
             /** @description Internal Server Error - Unexpected server error */
             500: {
                 headers: {
@@ -920,41 +919,15 @@ export interface operations {
             };
         };
     };
-    getTodo: {
+    redirectInternal: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 200 response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Todo"];
-                };
-            };
-            /** @description Unauthorized - Authentication required or failed */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
-                };
-            };
             /** @description Internal Server Error - Unexpected server error */
             500: {
                 headers: {
@@ -973,123 +946,42 @@ export interface operations {
             };
         };
     };
-    updateTodo: {
+    redirectToHealth: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTodoBody"];
-            };
-        };
-        responses: {
-            /** @description 200 response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Todo"];
-                };
-            };
-            /** @description Bad Request - Invalid input or validation failed */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Validation failed",
-                     *       "code": "BAD_REQUEST",
-                     *       "details": [
-                     *         {
-                     *           "path": [
-                     *             "email"
-                     *           ],
-                     *           "message": "Invalid email format"
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["BadRequestErrorResponse"];
-                };
-            };
-            /** @description Unauthorized - Authentication required or failed */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error - Unexpected server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "message": "Internal server error",
-                     *       "code": "INTERNAL_ERROR",
-                     *       "details": "Stack trace or error details for debugging"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["InternalServerErrorResponse"];
-                };
-            };
-        };
-    };
-    deleteTodo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description 200 response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        message: string;
-                    };
-                };
-            };
-            /** @description Unauthorized - Authentication required or failed */
-            401: {
+            /** @description Internal Server Error - Unexpected server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     /**
                      * @example {
-                     *       "message": "Authentication required",
-                     *       "code": "UNAUTHORIZED"
+                     *       "message": "Internal server error",
+                     *       "code": "INTERNAL_ERROR",
+                     *       "details": "Stack trace or error details for debugging"
                      *     }
                      */
-                    "application/json": components["schemas"]["UnauthorizedErrorResponse"];
+                    "application/json": components["schemas"]["InternalServerErrorResponse"];
                 };
             };
+        };
+    };
+    redirectExternal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
             /** @description Internal Server Error - Unexpected server error */
             500: {
                 headers: {

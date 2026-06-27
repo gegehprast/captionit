@@ -45,6 +45,11 @@ export function DirectoryBrowser({
     [onChange, onNavigate],
   )
 
+  // Sync input when parent value changes (e.g. session reconnect restores dirPath)
+  useEffect(() => {
+    if (value) setInputValue(value)
+  }, [value])
+
   // Load root on first mount if no value provided
   useEffect(() => {
     if (!browse && !value) {
