@@ -145,7 +145,7 @@ export function ImageStatusList({
             ref={gridRef}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3"
           >
-            {images.map((image, idx) => (
+            {images.map((image) => (
               <ImageThumbnail
                 key={image.file}
                 image={image}
@@ -153,7 +153,6 @@ export function ImageStatusList({
                 isActive={image.file === activeFile}
                 isSelected={checkedFiles.has(image.file)}
                 isDetail={image.file === detailFile}
-                isFocused={idx === focusedIdx}
                 onClick={(e) => handleClick(image.file, e)}
               />
             ))}
