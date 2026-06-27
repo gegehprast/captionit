@@ -82,7 +82,10 @@ export function DirectoryBrowser({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleInputKeyDown}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true)
+            if (!browse) load(inputValue || "/home")
+          }}
           placeholder="/home/user/dataset"
           disabled={disabled}
           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
