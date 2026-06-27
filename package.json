@@ -4,6 +4,8 @@
     "type": "module",
     "private": true,
     "scripts": {
+        "build": "bun scripts/build.ts",
+        "start": "cd dist && ./run.sh",
         "check": "bunx --bun biome check --write",
         "format": "bunx --bun biome format --write",
         "lint": "bun run scripts/lint.ts",
