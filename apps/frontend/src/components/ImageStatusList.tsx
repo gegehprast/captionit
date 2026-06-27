@@ -14,6 +14,8 @@ interface ImageStatusListProps {
   onCheckedChange: (files: Set<string>) => void
   lockedFiles: Set<string>
   onToggleLocked: (file: string) => void
+  onLockSelected: (files: Set<string>) => void
+  onUnlockSelected: (files: Set<string>) => void
   onCaptionSaved?: (file: string, caption: string) => void
 }
 
@@ -26,6 +28,8 @@ export function ImageStatusList({
   onCheckedChange,
   lockedFiles,
   onToggleLocked,
+  onLockSelected,
+  onUnlockSelected,
   onCaptionSaved,
 }: ImageStatusListProps) {
   const [detailFile, setDetailFile] = useState<string>(images[0]?.file)
@@ -108,9 +112,32 @@ export function ImageStatusList({
             {images.length} image(s)
           </span>
           {checkedFiles.size > 0 && (
-            <span className="text-xs text-pink-400">
-              {checkedFiles.size} selected
-            </span>
+            <>
+              <span className="text-xs text-pink-400">
+                {checkedFiles.size} selected
+              </span>
+              <button
+                type="button"
+                onClick={() => onCheckedChange(new Set())}
+                className="text-xs px-2 py-0.5 bg-gray-800/80 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => onLockSelected(checkedFiles)}
+                className="text-xs px-2 py-0.5 bg-gray-800/80 rounded border border-gray-600 text-gray-400 hover:text-yellow-400 hover:border-yellow-600 transition-colors"
+              >
+                Lock
+              </button>
+              <button
+                type="button"
+                onClick={() => onUnlockSelected(checkedFiles)}
+                className="text-xs px-2 py-0.5 bg-gray-800/80 rounded border border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400 transition-colors"
+              >
+                Unlock
+              </button>
+            </>
           )}
           {activeFile && (
             <button

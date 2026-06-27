@@ -265,6 +265,24 @@ export function CaptioningPage() {
     })
   }, [])
 
+  const handleLockSelected = useCallback((files: Set<string>) => {
+    setLockedFiles((prev) => {
+      const next = new Set(prev)
+      for (const f of files) next.add(f)
+      writeLockedFiles(scannedDirPathRef.current, next)
+      return next
+    })
+  }, [])
+
+  const handleUnlockSelected = useCallback((files: Set<string>) => {
+    setLockedFiles((prev) => {
+      const next = new Set(prev)
+      for (const f of files) next.delete(f)
+      writeLockedFiles(scannedDirPathRef.current, next)
+      return next
+    })
+  }, [])
+
   const handleScan = useCallback(async (path: string) => {
     setError(null)
     setIsScanning(true)
@@ -399,7 +417,6 @@ export function CaptioningPage() {
           onStart={handleStart}
           onStop={handleStop}
           isStopPending={isStopPending}
-          onClearSelection={() => setCheckedFiles(new Set())}
           isScanning={isScanning}
           isStreaming={isStreaming}
           selectedFiles={checkedFiles.size > 0 ? [...checkedFiles] : undefined}
@@ -421,6 +438,8 @@ export function CaptioningPage() {
             onCheckedChange={setCheckedFiles}
             lockedFiles={lockedFiles}
             onToggleLocked={toggleLocked}
+            onLockSelected={handleLockSelected}
+            onUnlockSelected={handleUnlockSelected}
             onCaptionSaved={(file, caption) =>
               setImages((prev) =>
                 prev.map((img) =>
