@@ -19,6 +19,7 @@ export interface ScanResult {
 
 export interface CaptioningConfig {
   serviceHost: string
+  apiKey: string
   modelName: string
   instruction: string
   maxResolution: number
@@ -114,8 +115,10 @@ export async function startCaptioningSession(
       mode,
       filesFilter,
       sessionId,
+      // Always send these — omitting lets the backend fall back to server defaults,
+      // but an explicit blank means "use no value" (e.g. no API key required).
+      apiKey: settings.apiKey,
       ...(settings.serviceHost ? { serviceHost: settings.serviceHost } : {}),
-      ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
       ...(settings.modelName ? { modelName: settings.modelName } : {}),
       ...(settings.instruction ? { instruction: settings.instruction } : {}),
       ...(settings.maxResolution

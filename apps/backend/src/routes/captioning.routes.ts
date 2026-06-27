@@ -49,6 +49,7 @@ const ScanResponseSchema = z
 const ConfigResponseSchema = z
   .object({
     serviceHost: z.string(),
+    apiKey: z.string(),
     modelName: z.string(),
     instruction: z.string(),
     maxResolution: z.number(),
@@ -188,6 +189,7 @@ createRoute("GET", "/api/captioning/config")
   .handler(({ res }) => {
     return res.ok({
       serviceHost: captioningConfig.DEFAULT_SERVICE_HOST,
+      apiKey: captioningConfig.DEFAULT_SERVICE_API_KEY,
       modelName: captioningConfig.DEFAULT_MODEL_NAME,
       instruction: captioningConfig.DEFAULT_INSTRUCTION,
       maxResolution: captioningConfig.DEFAULT_MAX_RESOLUTION,
@@ -392,8 +394,7 @@ createRoute("POST", "/api/captioning/start")
       resolvedDir: pathResult.value,
       mode,
       resolvedBaseURL: serviceHost ?? captioningConfig.DEFAULT_SERVICE_HOST,
-      resolvedApiKey:
-        (apiKey ?? captioningConfig.DEFAULT_SERVICE_API_KEY) || "no-key",
+      resolvedApiKey: apiKey || "no-key",
       modelName: modelName ?? captioningConfig.DEFAULT_MODEL_NAME,
       instruction: instruction ?? captioningConfig.DEFAULT_INSTRUCTION,
       maxResolution: maxResolution ?? captioningConfig.DEFAULT_MAX_RESOLUTION,

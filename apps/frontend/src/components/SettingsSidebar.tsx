@@ -29,7 +29,7 @@ export function SettingsSidebar({
       const cfg = await getCaptioningConfig()
       onChange({
         serviceHost: cfg.serviceHost,
-        apiKey: settings.apiKey,
+        apiKey: cfg.apiKey,
         modelName: cfg.modelName,
         instruction: cfg.instruction,
         maxResolution: cfg.maxResolution,
@@ -125,12 +125,11 @@ export function SettingsSidebar({
               value={settings.apiKey}
               onChange={(e) => set("apiKey", e.target.value)}
               disabled={disabled}
-              placeholder="Leave blank to use server default"
+              placeholder="Leave blank to send no API key"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 disabled:opacity-50 font-mono text-sm"
             />
             <p className="text-xs text-gray-600">
-              Overrides the server-side{" "}
-              <code className="text-gray-500">SERVICE_API_KEY</code>
+              Blank sends no key. Fill in to override the server-side default.
             </p>
           </div>
 

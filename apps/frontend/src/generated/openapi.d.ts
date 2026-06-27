@@ -339,7 +339,7 @@ export interface components {
              * @constant
              */
             status: "ok";
-            /** @example 2026-06-27T04:12:52.346Z */
+            /** @example 2026-06-27T05:34:34.855Z */
             timestamp: string;
             /** @example 123.456 */
             uptime: number;
@@ -364,6 +364,7 @@ export interface components {
         /** Captioning Config */
         ConfigResponse: {
             serviceHost: string;
+            apiKey: string;
             modelName: string;
             instruction: string;
             maxResolution: number;

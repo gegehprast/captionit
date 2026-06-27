@@ -718,7 +718,7 @@
           },
           "timestamp": {
             "type": "string",
-            "example": "2026-06-27T04:12:52.346Z"
+            "example": "2026-06-27T05:34:34.855Z"
           },
           "uptime": {
             "type": "number",
@@ -800,6 +800,9 @@
           "serviceHost": {
             "type": "string"
           },
+          "apiKey": {
+            "type": "string"
+          },
           "modelName": {
             "type": "string"
           },
@@ -812,6 +815,7 @@
         },
         "required": [
           "serviceHost",
+          "apiKey",
           "modelName",
           "instruction",
           "maxResolution"
