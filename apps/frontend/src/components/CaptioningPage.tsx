@@ -1,4 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+
+function playDoneChime() {
+  try {
+    const ctx = new AudioContext()
+    for (const [freq, start, duration] of [
+      [523.25, 0, 0.25], // C5
+      [659.25, 0.12, 0.25], // E5
+      [783.99, 0.24, 0.4], // G5
+    ] as [number, number, number][]) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = "sine"
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0, ctx.currentTime + start)
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + start + 0.02)
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        ctx.currentTime + start + duration,
+      )
+      osc.start(ctx.currentTime + start)
+      osc.stop(ctx.currentTime + start + duration)
+    }
+  } catch {
+    // AudioContext not available (e.g. SSR or restricted environment)
+  }
+}
+
 import toast from "react-hot-toast"
 import {
   type CaptioningConfig,
@@ -196,6 +225,7 @@ export function CaptioningPage() {
       } else if (s.failed > 0) {
         toast.error(msg, { duration: 6000 })
       } else {
+        playDoneChime()
         toast.success(msg, { duration: 5000 })
       }
     }
