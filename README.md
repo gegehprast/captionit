@@ -44,12 +44,6 @@ Then open `http://localhost:3001` in your browser.
 On first run `./start.sh` will create `dist/.env` from the example file automatically. Open it and fill in your model backend details:
 
 ```sh
-nano dist/.env   # or any text editor
-```
-
-The important fields:
-
-```sh
 # URL of your OpenAI-compatible API
 DEFAULT_SERVICE_HOST=https://api.venice.ai/api/v1
 
