@@ -56,7 +56,7 @@ export function CaptionDetail({
           <img
             src={getImageUrl(dirPath, image.file)}
             alt={image.file}
-            className="w-auto h-auto max-h-105 max-w-full object-contain"
+            className="w-auto h-auto max-h-128 max-w-full object-contain"
           />
         </div>
 

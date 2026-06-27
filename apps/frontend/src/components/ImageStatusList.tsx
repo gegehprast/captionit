@@ -31,9 +31,14 @@ export function ImageStatusList({
   const detailImage = images.find((i) => i.file === detailFile) ?? null
 
   useEffect(() => {
+    if (!activeFile) return
+
     const activeImage = images.find((i) => i.file === activeFile)
-    setDetailFile(activeImage?.file ?? images[0].file)
-  }, [activeFile])
+
+    if (!activeImage) return
+
+    setDetailFile(activeImage.file)
+  }, [activeFile, images])
 
   const handleClick = (file: string, e: React.MouseEvent) => {
     if (e.shiftKey && lastClickedRef.current) {
