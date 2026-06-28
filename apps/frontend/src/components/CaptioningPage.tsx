@@ -86,6 +86,26 @@ export function CaptioningPage() {
   const [liveCaption, setLiveCaption] = useState<string | undefined>()
   const [checkedFiles, setCheckedFiles] = useState<Set<string>>(new Set())
   const [lockedFiles, setLockedFiles] = useState<Set<string>>(new Set())
+  const [blurThumbnails, setBlurThumbnails] = useState(
+    () => localStorage.getItem("captionit-blur-thumbnails") === "1",
+  )
+  const [hoverToPeek, setHoverToPeek] = useState(
+    () => localStorage.getItem("captionit-hover-to-peek") !== "0",
+  )
+  const toggleBlur = useCallback(() => {
+    setBlurThumbnails((prev) => {
+      const next = !prev
+      localStorage.setItem("captionit-blur-thumbnails", next ? "1" : "0")
+      return next
+    })
+  }, [])
+  const toggleHoverToPeek = useCallback(() => {
+    setHoverToPeek((prev) => {
+      const next = !prev
+      localStorage.setItem("captionit-hover-to-peek", next ? "1" : "0")
+      return next
+    })
+  }, [])
   const [feedLines, setFeedLines] = useState<FeedLine[]>([])
   const [feedOpen, setFeedOpen] = useState(false)
   const [isStopPending, setIsStopPending] = useState(false)
@@ -404,6 +424,10 @@ export function CaptioningPage() {
         onClose={() => setSidebarOpen(false)}
         settings={settings}
         onChange={setSettings}
+        blurThumbnails={blurThumbnails}
+        onToggleBlur={toggleBlur}
+        hoverToPeek={hoverToPeek}
+        onToggleHoverToPeek={toggleHoverToPeek}
         disabled={isStreaming}
       />
 
@@ -440,6 +464,8 @@ export function CaptioningPage() {
             onToggleLocked={toggleLocked}
             onLockSelected={handleLockSelected}
             onUnlockSelected={handleUnlockSelected}
+            blurThumbnails={blurThumbnails}
+            hoverToPeek={hoverToPeek}
             onCaptionSaved={(file, caption) =>
               setImages((prev) =>
                 prev.map((img) =>

@@ -16,6 +16,8 @@ interface ImageStatusListProps {
   onToggleLocked: (file: string) => void
   onLockSelected: (files: Set<string>) => void
   onUnlockSelected: (files: Set<string>) => void
+  blurThumbnails: boolean
+  hoverToPeek: boolean
   onCaptionSaved?: (file: string, caption: string) => void
 }
 
@@ -30,6 +32,8 @@ export function ImageStatusList({
   onToggleLocked,
   onLockSelected,
   onUnlockSelected,
+  blurThumbnails,
+  hoverToPeek,
   onCaptionSaved,
 }: ImageStatusListProps) {
   const [detailFile, setDetailFile] = useState<string>(images[0]?.file)
@@ -186,6 +190,8 @@ export function ImageStatusList({
                 isDetail={image.file === detailFile}
                 isLocked={lockedFiles.has(image.file)}
                 onToggleLocked={() => onToggleLocked(image.file)}
+                isBlurred={blurThumbnails}
+                hoverToPeek={hoverToPeek}
                 onClick={(e) => handleClick(image.file, e)}
               />
             ))}
@@ -200,6 +206,8 @@ export function ImageStatusList({
             image={detailImage}
             isStreaming={detailFile === activeFile}
             liveCaption={detailFile === activeFile ? liveCaption : undefined}
+            isBlurred={blurThumbnails}
+            hoverToPeek={hoverToPeek}
             onCaptionSaved={onCaptionSaved}
           />
         )}

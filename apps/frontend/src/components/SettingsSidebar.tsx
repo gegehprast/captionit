@@ -9,6 +9,10 @@ interface SettingsSidebarProps {
   onClose: () => void
   settings: CaptioningSettings
   onChange: (settings: CaptioningSettings) => void
+  blurThumbnails: boolean
+  onToggleBlur: () => void
+  hoverToPeek: boolean
+  onToggleHoverToPeek: () => void
   disabled?: boolean
 }
 
@@ -17,6 +21,10 @@ export function SettingsSidebar({
   onClose,
   settings,
   onChange,
+  blurThumbnails,
+  onToggleBlur,
+  hoverToPeek,
+  onToggleHoverToPeek,
   disabled = false,
 }: SettingsSidebarProps) {
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -202,6 +210,43 @@ export function SettingsSidebar({
               Images are resized to this max dimension before sending (px).
               Lower = faster.
             </p>
+          </div>
+
+          {/* View */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              View
+            </p>
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <span className="text-sm text-gray-300">Blur thumbnails</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={blurThumbnails}
+                onClick={onToggleBlur}
+                className={`relative w-9 h-5 rounded-full transition-colors ${blurThumbnails ? "bg-pink-600" : "bg-gray-700"}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${blurThumbnails ? "translate-x-4" : "translate-x-0"}`}
+                />
+              </button>
+            </label>
+            <label
+              className={`flex items-center justify-between gap-3 cursor-pointer ${!blurThumbnails ? "opacity-40 pointer-events-none" : ""}`}
+            >
+              <span className="text-sm text-gray-300">Hover to peek</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hoverToPeek}
+                onClick={onToggleHoverToPeek}
+                className={`relative w-9 h-5 rounded-full transition-colors ${hoverToPeek ? "bg-pink-600" : "bg-gray-700"}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${hoverToPeek ? "translate-x-4" : "translate-x-0"}`}
+                />
+              </button>
+            </label>
           </div>
         </div>
 

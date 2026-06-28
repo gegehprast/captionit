@@ -7,6 +7,8 @@ interface CaptionDetailProps {
   image: ImageFile
   isStreaming: boolean
   liveCaption?: string
+  isBlurred?: boolean
+  hoverToPeek?: boolean
   onCaptionSaved?: (file: string, caption: string) => void
 }
 
@@ -15,6 +17,8 @@ export function CaptionDetail({
   image,
   isStreaming,
   liveCaption,
+  isBlurred = false,
+  hoverToPeek = true,
   onCaptionSaved,
 }: CaptionDetailProps) {
   const [editCaption, setEditCaption] = useState(image.caption ?? "")
@@ -56,7 +60,7 @@ export function CaptionDetail({
           <img
             src={getImageUrl(dirPath, image.file)}
             alt={image.file}
-            className="w-auto h-auto max-h-128 max-w-full object-contain"
+            className={`w-auto h-auto max-h-128 max-w-full object-contain transition-all ${isBlurred ? `blur-xl ${hoverToPeek ? "hover:blur-none" : ""}` : ""}`}
           />
         </div>
 

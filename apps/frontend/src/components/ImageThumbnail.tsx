@@ -8,6 +8,8 @@ interface ImageThumbnailProps {
   isDetail: boolean
   isLocked: boolean
   onToggleLocked: () => void
+  isBlurred: boolean
+  hoverToPeek: boolean
   onClick: (e: React.MouseEvent) => void
 }
 
@@ -19,6 +21,8 @@ export function ImageThumbnail({
   isDetail,
   isLocked,
   onToggleLocked,
+  isBlurred,
+  hoverToPeek,
   onClick,
 }: ImageThumbnailProps) {
   return (
@@ -48,7 +52,7 @@ export function ImageThumbnail({
           <img
             src={src}
             alt={image.file}
-            className={`w-full h-full object-cover object-[30%_30%] group-hover:object-[20%_20%] transition-all ${isLocked ? "brightness-50" : ""}`}
+            className={`w-full h-full object-cover object-[30%_30%] group-hover:object-[20%_20%] transition-all ${isLocked ? "brightness-50" : ""} ${isBlurred ? `blur-xl ${hoverToPeek ? "group-hover:blur-none" : ""}` : ""}`}
             loading="lazy"
           />
         </div>
